@@ -1,0 +1,22 @@
+body {
+    overflow: hidden;
+}
+
+code.hljs {
+    background-color: #fafafa;
+}
+
+.blog-read-div {
+    margin: 0 auto;
+    width: 100%;
+    max-width: 100%;
+    padding: 0 20px;
+    box-sizing: border-box;
+    margin-bottom: 15px;
+}
+
+.blog-read-div img {
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+}
