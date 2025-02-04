@@ -18,13 +18,14 @@
         <div slot="app-side-menu">
           <globular-sidebar header-background-image="assets/sidebar_head_bg.png">
             <globular-sidebar-menu>
-              <globular-webpage-manager root="/applications/globular-element" index="/globular-element/home" icon="fa fa-file" >  
+              <globular-webpage-manager root="/applications/globular-element" index="/home" icon="fa fa-file" >  
               </globular-webpage-manager>
           </globular-sidebar>
         </div>
         <div slot="app-title">Globular</div>
         
         <globular-login slot="contextual-action-bar"></globular-login>
+        <globular-session-menu slot="contextual-action-bar"></globular-session-menu>
 
         <div slot="app-content" style="height: calc(100vh - 64px); overflow-y: auto; overflow-x: hidden;">
           <div class="container">

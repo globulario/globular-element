@@ -16,7 +16,8 @@ import "./webcomponents/fileExplorer/fileExplorer"
 import "./webcomponents/blogPost/blogPosts"
 import "./webcomponents/grapeJS/grape"
 import "./webcomponents/table"
-import "./webcomponents/login"
+import "./webcomponents/session/login"
+import "./webcomponents/session/session"
 import { Backend } from './backend/backend';
 import './webcomponents/router';
 import './webcomponents/dynamicWebpage';
@@ -43,7 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         webpageManager.router = document.querySelector('globular-router') as any;
-
+        
         if (webpageManager.router == null) {
             webpageManager.router = document.createElement('globular-router');
             document.body.appendChild(webpageManager.router);
@@ -60,14 +61,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 }, 0);
             });
 
-
-
             // Initialize with the current URL
             (async () => {
                 // Handle initial URL
                 const currentUrl = window.location.pathname;
                 await webpageManager.loadPages(webpageManager.root, currentUrl);
             })();
+
         } else {
             console.error('globular-webpage-manager or globular-router not found in DOM.');
         }

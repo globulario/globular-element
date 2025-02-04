@@ -49,6 +49,9 @@ export class Router extends HTMLElement {
   
     dispatchRouteChange() {
       let path = window.location.pathname;
+      if (path.startsWith(this.base)) {
+        path = path.substring(this.base.length);
+      }
       const event = new CustomEvent('route-change', {
         detail: { path: path },
         bubbles: true,

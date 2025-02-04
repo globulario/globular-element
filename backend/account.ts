@@ -1,10 +1,12 @@
-import { Account, GetAccountsRqst, GetSessionRequest, GetSessionResponse, Session } from "globular-web-client/resource/resource_pb";
+import { Account, GetAccountsRqst, GetSessionRequest, GetSessionResponse, Session, SessionState, UpdateSessionRequest, UpdateSessionResponse } from "globular-web-client/resource/resource_pb";
 import { Backend, displayError, displayMessage, generatePeerToken } from "./backend";
 import { Globular } from "globular-web-client";
 import { AuthenticateRqst } from "globular-web-client/authentication/authentication_pb";
 import jwt from 'jwt-decode';
 import { GetSubjectAvailableSpaceRqst, SubjectType } from "globular-web-client/rbac/rbac_pb";
 import { Connection, FindOneRqst, CreateConnectionRqst } from "globular-web-client/persistence/persistence_pb";
+import { on } from "process";
+import { ApplicationController } from "./applications";
 
 export class AccountController {
 
@@ -34,7 +36,10 @@ export class AccountController {
                 AccountController.__account__.setName(userName);
                 AccountController.__account__.setEmail(email);
                 AccountController.__account__.setDomain(domain);
-
+                // init the 
+                AccountController.getAccount(id, (account) => {
+                    AccountController.__account__ = account;
+                }, err => console.log(err))
 
             } else {
                 // Set the account to be the sa account.
@@ -238,8 +243,9 @@ export class AccountController {
                     (uuid: string) => {
                         /** nothing special here... */
                     },
-                    (evt: string) => {
-                        let obj = JSON.parse(evt)
+                    (evt: String) => {
+                        let session = Session.deserializeBinary(Uint8Array.from(evt.split(",")))
+                        console.log("Session state changed", session)
                         // update the session state from the network.
                         //this.state_ = obj.state;
                         //this.lastStateTime = new Date(obj.lastStateTime * 1000); // a number to date
@@ -250,7 +256,10 @@ export class AccountController {
                     (uuid: string) => {
                         /** nothing special here... */
                     },
-                    (obj: any) => {
+                    (evt: String) => {
+                        let session = Session.deserializeBinary(Uint8Array.from(evt.split(",")))
+                        console.log("Session state changed", session)
+
                         // Set the object state from the object and save it...
                         //this.state_ = obj.state;
                         //this.lastStateTime = obj.lastStateTime; // already a date
@@ -260,6 +269,63 @@ export class AccountController {
 
             }, errorCallback)
         }, errorCallback)
+
+    }
+
+    // Save session state in the databese.
+    static saveSession(onSave: () => void, onError: (err: any) => void) {
+        let rqst = new UpdateSessionRequest;
+        let session = (this.account as any).session;
+
+        let user_token = localStorage.getItem("user_token");
+        if (user_token == null) {
+            onError("No user token found")
+            return
+        }
+
+        // I will get the token expiration date.
+        let decoded = jwt(user_token);
+        let token_expired = (<any>decoded).exp;
+
+        // I will check if the token is still valid
+        if (Math.round(new Date().getTime() / 1000) > token_expired) {
+            onError("The user token is expired")
+            return
+        }
+
+        // I will set the session expiration date to the token expiration date.
+        session.setExpireAt(Math.round(token_expired))
+
+        rqst.setSession(session)
+
+        // TEST if session must be on the user globule or the actual session store.
+        let globule = Backend.getGlobule(this.account.getDomain())
+        generatePeerToken(globule, token => {
+
+            if (globule.resourceService == null) {
+                onError("Resource service not found")
+                return
+            }
+
+            // call persist data
+            globule.resourceService
+                .updateSession(rqst, {
+                    token: token,
+                    domain: this.account.getDomain()
+                })
+                .then((rsp: UpdateSessionResponse) => {
+                    // Here I will return the value with it
+                    globule.eventHub.publish(`session_state_${session.getAccountid()}_change_event`, session.serializeBinary(), false)
+                    onSave();
+                })
+                .catch((err: any) => {
+                    if (onError) {
+                        onError(err);
+                    }
+
+                    console.log("fail to save session", err)
+                });
+        }, err => console.log(err))
 
     }
 
@@ -332,7 +398,6 @@ export class AccountController {
                     AccountController.__accounts__[accountId] = data;
 
                     AccountController.initSession(data, () => {
-
                         AccountController.initData(data, (account: Account) => {
                             successCallback(account)
                         }, errorCallback)
@@ -473,6 +538,38 @@ export class AccountController {
 
     }
 
+    /**
+ * Close the current session explicitelty.
+ */
+    static logout() {
+
+        // Send local event.
+        if (AccountController.account != undefined) {
+
+            // So here I will set the account session state to onlise.
+            let session = (AccountController.account as any).session as Session;
+            session.setState(SessionState.OFFLINE);
+            
+            AccountController.saveSession(() => {
+                displayMessage(`Bye Bye ${AccountController.account.getId()}!`, 3000)
+                Backend.getGlobule(AccountController.account.getDomain()).eventHub.publish(`session_state_${session.getAccountid()}_change_event`, session.serializeBinary(), false)
+            }, err => console.log(err))
+        }
+
+        // remove token informations
+        localStorage.removeItem("remember_me");
+        localStorage.removeItem("user_token");
+        localStorage.removeItem("user_id");
+        localStorage.removeItem("user_name");
+        localStorage.removeItem("user_email");
+        localStorage.removeItem("token_expired");
+
+
+        setTimeout(() => {
+            window.location.reload();
+        }, 3000)
+    }
+
     // Authenticate the 'sa' user on the globule...
     static authenticate(globule: Globular, user: string, password: string, callback: (token: string) => void, errorCallback: (err: any) => void) {
         let rqst = new AuthenticateRqst();
@@ -539,6 +636,17 @@ export class AccountController {
                 AccountController.getAccount(id, (account) => {
                     AccountController.__account__ = account;
                     callback(token)
+
+                    // set the session state to connected
+                    let session = (this.account as any).session as Session;
+                    session.setState(SessionState.ONLINE);
+                    session.setLastStateTime(Math.round(new Date().getTime() / 1000));
+
+                    AccountController.saveSession(() => {
+                        displayMessage("Welcome " + userName, 3000)
+                        Backend.getGlobule(userDomain).eventHub.publish(`session_state_${session.getAccountid()}_change_event`, session.serializeBinary(), false)
+                    }, errorCallback)
+
                 }, errorCallback)
             })
 

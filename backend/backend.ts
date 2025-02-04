@@ -670,6 +670,13 @@ export class Backend {
             }, (err: any) => {
                 initCallback();
             });
+
+            // Here I will dispatch a custom dom event to notify that the backend is ready.
+            const event = new CustomEvent('backend-ready', { detail: Backend.globular });
+            document.dispatchEvent(event);
+            
+           
+
         }, err => { console.log(err); errorCallback(err); });
 
     }

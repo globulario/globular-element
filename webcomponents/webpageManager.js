@@ -275,12 +275,6 @@ class GlobularWebpageManager extends HTMLElement {
       this.root = this.getAttribute('root');
     }
 
-    if (!this.root && this.router) {
-      // I will take the first 
-      this.base = this.router.getAttribute('base'); // the base application url.
-      this.root = "/applications/" + base;
-    }
-
     if (this.hasAttribute('index')) {
       this.index = this.getAttribute('index');
     }
@@ -299,6 +293,9 @@ class GlobularWebpageManager extends HTMLElement {
    * </globular-sidebar-menu-item>
    */
   async loadPages(folder = this.root, link = "") {
+
+    // I will take the first 
+    this.base = this.router.getAttribute('base'); // the base application url.
 
     // Clear the pages object
     this.pages = {};
@@ -425,8 +422,9 @@ class GlobularWebpageManager extends HTMLElement {
       // attribute of a file or a directory are stored in a file called infos.json in the directory of the file (or directory)
       const attributes = await this.fetchAttributes(dir.getPath());
 
-      let alias = attributes.alias || dir.getName().replace('.html', '');
+      let alias = "" 
       if (dir.getName() != this.base) {
+        alias = attributes.alias || dir.getName().replace('.html', '');
         parentLnk += "/" + alias;
       }
 
@@ -542,12 +540,17 @@ class GlobularWebpageManager extends HTMLElement {
             this.appendChild(rootMenuItem);
           }
 
+          if(this.base != undefined) {
+            link = link.replace(this.base+ "/", "");
+          }
+          
           if (this.getPage(link) == undefined) {
             link = this.index;
           }
 
           if (this.index != undefined) {
             let lnk = this.decodeRepeatedly(link);
+
             this.router.navigate([lnk]); // Trigger Angular routing
             this.setPage(lnk); // Set the page content
           }
@@ -714,18 +717,13 @@ class GlobularWebpageManager extends HTMLElement {
     const attributesPath = `${dirPath}/infos.json`;
     try {
       let url = getUrl(Backend.globular) + attributesPath;
-      let token = ""
-      if (localStorage.getItem("user_token") != null) {
-        token = localStorage.getItem("user_token");
-      }
-      url += "?token=" + token;
-      url += "&application=" + this.base;
+      url += "?application=" + this.base;
 
       const response = await fetch(url);
       const json = await response.json();
       return json;
     } catch (err) {
-      console.warn(`Failed to fetch attributes from ${attributesPath}:`, err);
+      console.error(`Failed to fetch attributes from ${attributesPath}:`, err);
     }
 
     return {}; // Return an empty object if the file doesn't exist or fails to load
