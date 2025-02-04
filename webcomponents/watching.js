@@ -4,7 +4,7 @@ import { DeleteOneRqst, ReplaceOneRqst, FindOneRqst, FindRqst } from "globular-w
 import { Backend, displayError, generatePeerToken } from "../backend/backend";
 import "@polymer/iron-icons/iron-icons.js";
 import '@polymer/iron-icons/maps-icons'
-import * as jwt from "jwt-decode";
+import jwt from "jwt-decode";
 import { TitleController } from "../backend/title";
 import { mergeTypedArrays, uint8arrayToStringMethod } from "../Utility";
 

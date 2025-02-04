@@ -1,7 +1,7 @@
 import getUuidByString from "uuid-by-string";
 import { playAudios } from "../audio";
 import { playVideos } from "../video";
-import { displayError } from "../utility";
+import { displayError } from "../../backend/backend";
 
 export class FacetSearchFilter extends HTMLElement {
     // attributes.

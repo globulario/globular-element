@@ -10,6 +10,8 @@ import ckEditorPlugin from 'grapesjs-plugin-ckeditor';
 import exportPlugin from 'grapesjs-plugin-export';
 import postcss from 'postcss';
 import removeDuplicateValues from 'postcss-discard-duplicates';
+import "grapesjs-component-code-editor/dist/grapesjs-component-code-editor.min.css"
+import "grapesjs/dist/css/grapes.min.css"
 
 // Globular plugin's
 import markdownPlugin from './plugins/globular-markdown-plugin';
@@ -191,6 +193,7 @@ class ExternalResourceManager extends HTMLElement {
     }
 
     addResource(type, url) {
+
         // Check if the resource already exists
         const elements = this.iframeDoc.querySelectorAll(type === 'script' ? 'script[src]' : 'link[rel="stylesheet"]');
         let exists = false;
@@ -229,6 +232,7 @@ class ExternalResourceManager extends HTMLElement {
 
 
     addResourceToDocument(type, url) {
+ 
         const iframeDoc = this.iframeDoc;
         let element;
         if (type === 'script') {
@@ -244,7 +248,7 @@ class ExternalResourceManager extends HTMLElement {
             // I will add the element to the head of the iframe document if it does not exist
             iframeDoc.head.querySelectorAll(type === 'script' ? 'script' : 'link').forEach((el) => {
                 if ((type === 'script' && el.src === url) || (type === 'link' && el.href === url)) {
-                    element = null;
+                   return; // The element already exists
                 }
             });
 
@@ -256,6 +260,17 @@ class ExternalResourceManager extends HTMLElement {
     }
 
     addResourceItem(type, url, isNew) {
+
+        // I will test if the item already exists
+        const items = this.resourceList.querySelectorAll('.resource-item');
+        for (let i = 0; i < items.length; i++) {
+            const span = items[i].querySelector('span');
+            if (span.textContent === url) {
+                return; // The item already exists
+            }
+        }
+
+
         const li = document.createElement('li');
         li.className = 'resource-item';
         li.innerHTML = `

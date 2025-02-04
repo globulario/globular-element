@@ -49,8 +49,10 @@ export class ResponsiveToolbar {
     // Show or hide the overflow menu based on moved items
     if (movedItems.length === 0) {
       this.overflowMenu.setAttribute('hidden', '');
+      this.overflowMenu.style.display = 'none';
     } else {
       this.overflowMenu.removeAttribute('hidden');
+      this.overflowMenu.style.display = 'flex';
     }
   }
 
@@ -97,9 +99,6 @@ export class AppLayout extends HTMLElement {
     // Get the application name and url.
     const applicationName = this.getAttribute('application-name') || 'Default Application Name';
     document.title = applicationName
-
-    // Set the application name.
-    //document.querySelector("meta[name='application-name']").setAttribute("content", applicationName);
 
     // Initialization of the layout.
     this.shadowRoot.innerHTML = `
@@ -162,13 +161,24 @@ export class AppLayout extends HTMLElement {
             display: flex;
             flex-grow: 1;
             overflow: hidden;
+            margin-left: 2rem;
           }
 
         #overflow-menu {
           position: relative;
-          display: flex;
+          display: none;
           align-items: center;
           cursor: pointer;
+        }
+
+        #main-title {
+          display: flex;
+          flex-grow: 1;
+          
+          justify-content: flex-start;
+          align-items: center;
+          font-size: 1.5rem;
+          font-weight: 500;
         }
 
         #overflow-dropdown {

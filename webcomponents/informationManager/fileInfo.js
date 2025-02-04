@@ -1,6 +1,6 @@
 import { GetFileMetadataRequest } from "globular-web-client/file/file_pb";
-import { displayError, getFileSizeString } from "../utility";
-import { generatePeerToken } from "../../backend/backend";
+import { getFileSizeString } from "../utility";
+import { generatePeerToken, displayError } from "../../backend/backend";
 import "./fileMetaDataInfo.js"
 
 /**

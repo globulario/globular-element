@@ -3,9 +3,12 @@
   "version": "1.0.0",
   "description": "Collection of webcomponent to work with globular",
   "main": "index.js",
+  "alias": "globular-element",
+  "icon": "assets/icon.png",
   "scripts": {
     "start": "webpack serve --mode development",
-    "build": "webpack --mode production"
+    "build": "webpack --mode production",
+    "dist": "npm run build && Globular deploy -u=sa -p=adminadmin -name=globular-element -a=globule-ryzen.globular.io -path=dist"
   },
   "repository": {
     "type": "git",

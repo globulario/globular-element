@@ -519,4 +519,6 @@ customElements.define('globular-dockbar', Dockbar)
 
 // create the dockbar.
 export let dockbar = new Dockbar()
-document.body.appendChild(dockbar)
+if(document.body){
+    document.body.appendChild(dockbar)
+}

@@ -1,79 +1,56 @@
-// grapesjs-globular-markdown-plugin.js
-export default (editor, opts = {}) => {
-  const options = {
-    label: 'Markdown',
-    category: 'Basic',
-    scriptUrl: 'URL_TO_GLOBULAR_MARKDOWN_JS', // <-- Replace with actual URL
-    ...opts,
-  };
+import grapesjs from 'grapesjs';
 
-  // Add the block
-  editor.BlockManager.add('markdown-block', {
-    label: options.label,
-    category: options.category,
-    content: `
-      <globular-markdown 
-        background-color="#ffffff" 
-        theme="https://cdn.jsdelivr.net/npm/highlight.js@10.7.2/styles/tomorrow.min.css">
-        <pre><![CDATA[
-## Example Markdown Content
-This is a sample Markdown content rendered by the \`globular-markdown\` component.
+export default grapesjs.plugins.add('gjs-plugin-globular-markdown', (editor, options = {}) => {
+  // Load required script and style
+  /*const scriptUrl = 'https://globular.io/globular-element/bundle.min.js';
+  const styleUrl = 'https://globular.io/globular-element/style.css';
 
-\`\`\`javascript
-const greeting = 'Hello, world!';
-console.log(greeting);
-\`\`\`
-        ]]></pre>
-      </globular-markdown>
-    `,
-    attributes: { class: 'fa fa-code' },
-  });
+  if (!document.querySelector(`script[src="${scriptUrl}"]`)) {
+    const script = document.createElement('script');
+    script.src = scriptUrl;
+    script.defer = true;
+    document.head.appendChild(script);
+  }
 
-  // Define the component
-  editor.DomComponents.addType('globular-markdown', {
+  if (!document.querySelector(`link[href="${styleUrl}"]`)) {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = styleUrl;
+    document.head.appendChild(link);
+  }*/
+
+  // Add custom markdown component
+  editor.Components.addType('globular-markdown', {
     model: {
       defaults: {
         tagName: 'globular-markdown',
-        traits: [
-          {
-            type: 'text',
-            name: 'background-color',
-            label: 'Background Color',
-          },
-          {
-            type: 'text',
-            name: 'code-background-color',
-            label: 'Code Background',
-          },
-          {
-            type: 'text',
-            name: 'text-color',
-            label: 'Text Color',
-          },
-          {
-            type: 'text',
-            name: 'theme',
-            label: 'Theme URL',
-          },
-        ],
-        script: function () {
-          if (!window.globularMarkdownLoaded) {
-            window.globularMarkdownLoaded = true;
-            const script = document.createElement('script');
-            script.src = '${options.scriptUrl}'; // Load Web Component script
-            script.type = 'module';
-            document.head.appendChild(script);
-          }
-
-          // Ensure the component initializes properly
-          this.connectedCallback();
+        attributes: {
+          'background-color': '#f5f2f0',
+          'code-background-color': '#f5f2f0',
+          'text-color': '#000000',
+          theme: '',
         },
+        components: 'Type your **Markdown** content here...',
+        stylable: ['background-color', 'text-color', 'code-background-color'],
+        droppable: true,
       },
     },
-    isComponent(el) {
-      if (el.tagName === 'GLOBULAR-MARKDOWN') {
-        return { type: 'globular-markdown' };
-      }
+    view: {
+      init() {
+        this.listenTo(this.model, 'change:components', this.updateContent);
+      },
+      updateContent() {
+        const el = this.el;
+        const content = this.model.get('components').map(comp => comp.toHTML()).join('');
+        el.innerHTML = content;
+      },
     },
   });
-};
+
+  // Add component to GrapesJS block manager
+  editor.BlockManager.add('globular-markdown', {
+    label: 'Markdown',
+    category: 'Basic',
+    content: { type: 'globular-markdown' },
+  });
+});

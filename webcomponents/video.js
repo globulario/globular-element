@@ -1,13 +1,14 @@
-import { Backend, generatePeerToken, getUrl } from '../backend/backend';
+import { Backend, generatePeerToken, getUrl, displayError} from '../backend/backend';
 import Plyr from 'plyr';
 import Hls from "hls.js";
 import { GetFileTitlesRequest, GetFileVideosRequest, GetTitleFilesRequest, Poster, Video } from "globular-web-client/title/title_pb";
 import { FileController } from "../backend/file";
-import { displayError, fireResize } from "./utility";
+import {fireResize } from "./utility";
 import { PlayList } from "./playlist"
 import { TitleController } from '../backend/title';
 import { add } from 'lodash';
 import { WatchingMenu } from './watching';
+import "./plyr.css"
 
 
 Object.defineProperty(HTMLMediaElement.prototype, 'playing', {

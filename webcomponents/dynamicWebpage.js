@@ -18,6 +18,8 @@ export class DynamicPage extends HTMLElement {
             border-radius: 4px;
             box-shadow: 0 2px 4px #0000001a;
             background-color: var(--surface-color);
+            margin-top: 10px;
+            margin-bottom: 10px;
 
           }
           .content-frame {

@@ -4,70 +4,77 @@ const HtmlWebpackPlugin = require("html-webpack-plugin");
 const { CleanWebpackPlugin } = require("clean-webpack-plugin");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
 
-module.exports = {
-    entry: "./index.ts",
-    output: {
-        filename: "bundle.js",
-        path: path.resolve(__dirname, "dist"),
-        publicPath: "/",
-    },
-    mode: "development",
-    devtool: "source-map",
-    devServer: {
-        static: "./dist",
-        hot: true,
-        open: true,
-        watchFiles: ["src/**/*", "dist/**/*"], // Watch files in dist and src for changes
-    },
-    resolve: {
-        extensions: [".ts", ".js"],
-        alias: {
-            "@polymer": path.resolve(__dirname, "node_modules/@polymer"),
+module.exports = (env, argv) => {
+    const isProduction = argv.mode === "production";
+
+    return {
+        entry: "./index.ts",
+        output: {
+            filename: "bundle.min.js",
+            path: path.resolve(__dirname, "dist"),
+            publicPath: isProduction ? "/globular-element/" : "/", // Set only in production
         },
-    },
-    module: {
-        rules: [
-            {
-                test: /\.ts$/,
-                use: {
-                    loader: "ts-loader",
-                    options: {
-                        transpileOnly: true,
-                    },
-                },
-                exclude: /node_modules/,
+        mode: isProduction ? "production" : "development",
+        devtool: isProduction ? "source-map" : "eval-source-map",
+        resolve: {
+            extensions: [".ts", ".js"],
+            alias: {
+                "@polymer": path.resolve(__dirname, "node_modules/@polymer"),
             },
-            {
-                test: /\.css$/,
-                use: [MiniCssExtractPlugin.loader, "css-loader"],
-            },
-            {
-                test: /\.(png|jpe?g|gif|svg)$/, // Handling images
-                use: [
-                    {
-                        loader: "file-loader",
+        },
+        module: {
+            rules: [
+                {
+                    test: /\.ts$/,
+                    use: {
+                        loader: "ts-loader",
                         options: {
-                            name: "assets/[name].[hash].[ext]", // Output to dist/assets
+                            transpileOnly: true,
                         },
                     },
-                ],
-            },
-        ],
-    },
-    plugins: [
-        new CleanWebpackPlugin(),
-        new MiniCssExtractPlugin({ filename: "./style.css" }),
-        new HtmlWebpackPlugin({
-            template: "./index.html",
-            inject: "body",
-        }),
-        new CopyWebpackPlugin({
-            patterns: [
+                    exclude: /node_modules/,
+                },
                 {
-                    from: "assets", // Path to your assets folder
-                    to: "assets",   // Where the assets should go in dist/
+                    test: /\.css$/,
+                    use: [MiniCssExtractPlugin.loader, "css-loader"],
+                },
+                {
+                    test: /\.(png|jpe?g|gif|svg|webp)$/,
+                    use: [
+                        {
+                            loader: "file-loader",
+                            options: {
+                                name: "assets/[name].[hash].[ext]",
+                            },
+                        },
+                    ],
                 },
             ],
-        }),
-    ],
+        },
+        plugins: [
+            new CleanWebpackPlugin(),
+            new MiniCssExtractPlugin({ filename: "./style.css" }),
+            new HtmlWebpackPlugin({
+                template: "./index.html",
+                inject: "body",
+                publicPath: isProduction ? "/globular-element/" : "/", // Set only in production
+            }),
+            new CopyWebpackPlugin({
+                patterns: [
+                    {
+                        from: "assets",
+                        to: "assets",
+                    },
+                ],
+            }),
+        ],
+        devServer: {
+            static: {
+                directory: path.join(__dirname, "dist"),
+            },
+            compress: true,
+            port: 9000,
+            historyApiFallback: true,
+        },
+    };
 };

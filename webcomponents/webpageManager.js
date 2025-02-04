@@ -2,7 +2,7 @@ import "@polymer/paper-icon-button/paper-icon-button.js";
 import "@polymer/paper-radio-button/paper-radio-button.js";
 import "@polymer/paper-radio-group/paper-radio-group.js";
 import { FileController } from "../backend/file";
-import { Backend, displayMessage, generatePeerToken, getUrl } from "../backend/backend";
+import { Backend, displayMessage, displayError, generatePeerToken, getUrl } from "../backend/backend";
 import getUuidByString from "uuid-by-string";
 import { GrapesEditor } from "./grapeJS/grape";
 import s from "@editorjs/raw";
@@ -10,9 +10,8 @@ import { createDir, deleteDir, deleteFile, readDir, uploadFiles } from "globular
 import { html as beautify } from 'js-beautify';
 import prettify from 'html-prettify'
 import { MoveRequest } from "globular-web-client/file/file_pb";
-import { displayError } from "./utility";
+import { FileExplorer } from "./fileExplorer/fileExplorer";
 
-const appFolder = window.location.pathname.split('/')[1];
 
 /**
  * Returns an HTML string for a 404 error page
@@ -85,7 +84,6 @@ function getErrorPage(url) {
 `;
 }
 
-
 class GlobularWebpageManager extends HTMLElement {
 
   constructor() {
@@ -104,7 +102,6 @@ class GlobularWebpageManager extends HTMLElement {
         flex-direction: row;
         align-items: center;
         justify-content: flex-start;
-        gap: 10px;
       }
 
       </style>
@@ -112,6 +109,8 @@ class GlobularWebpageManager extends HTMLElement {
         <div id="actions" class="actions">
           <paper-icon-button id="edit-pages"  icon="editor:mode-edit" title="Edit Web Pages"></paper-icon-button>
           <paper-icon-button id="create-page" style="display: none;" icon="add" title="Create Web Page or Directory"></paper-icon-button>
+          <paper-icon-button id="open-root-folder" style="display: none;" icon="folder" title="Open pages folders"></paper-icon-button>
+          <paper-icon-button id="refresh-pages" icon="refresh"  title="Refresh Web Pages"></paper-icon-button>
         </div>
       </div>
     `;
@@ -125,6 +124,39 @@ class GlobularWebpageManager extends HTMLElement {
       this.createPageOrDir(this.root);
     });
 
+    let openRootFolderBtn = this.shadowRoot.querySelector('#open-root-folder');
+    openRootFolderBtn.addEventListener('click', () => {
+      let fileExplorer = new FileExplorer();
+      document.body.appendChild(fileExplorer);
+      fileExplorer.publishSetDirEvent(this.root)
+    });
+
+    let refreshPagesBtn = this.shadowRoot.querySelector('#refresh-pages');
+    refreshPagesBtn.addEventListener('click', () => {
+      this.loadPages(this.root).then(() => {
+        // set back the edit mode
+        let editMode = editModeBtn.getAttribute('edit-mode') == "true";
+        if (!editMode) {
+          createPageBtn.style.display = "none";
+          openRootFolderBtn.style.display = "none";
+          editModeBtn.setAttribute('edit-mode', 'false');
+          editModeBtn.style.color = "";
+          this.menuItems.forEach((menuItem) => {
+            menuItem.removeAttribute('edit-mode');
+          });
+        } else {
+          createPageBtn.style.display = "flex";
+          openRootFolderBtn.style.display = "flex";
+          refreshPagesBtn.style.display = "flex";
+          editModeBtn.setAttribute('edit-mode', 'true');
+          editModeBtn.style.color = "red";
+          this.menuItems.forEach((menuItem) => {
+            menuItem.setAttribute('edit-mode', 'true');
+          });
+        }
+      });
+    });
+
     let editModeBtn = this.shadowRoot.querySelector('#edit-pages')
     editModeBtn.setAttribute('edit-mode', 'false');
     editModeBtn.addEventListener('click', () => {
@@ -132,6 +164,7 @@ class GlobularWebpageManager extends HTMLElement {
       let editMode = editModeBtn.getAttribute('edit-mode') == "true";
       if (editMode) {
         createPageBtn.style.display = "none";
+        openRootFolderBtn.style.display = "none";
         editModeBtn.setAttribute('edit-mode', 'false');
         editModeBtn.style.color = "";
         this.menuItems.forEach((menuItem) => {
@@ -139,6 +172,8 @@ class GlobularWebpageManager extends HTMLElement {
         });
       } else {
         createPageBtn.style.display = "flex";
+        openRootFolderBtn.style.display = "flex";
+        refreshPagesBtn.style.display = "flex";
         editModeBtn.setAttribute('edit-mode', 'true');
         editModeBtn.style.color = "red";
         this.menuItems.forEach((menuItem) => {
@@ -146,6 +181,7 @@ class GlobularWebpageManager extends HTMLElement {
         });
       }
     });
+
 
     // add listener for items-change-event event
     document.addEventListener('items-change-event', (e) => {
@@ -239,10 +275,10 @@ class GlobularWebpageManager extends HTMLElement {
       this.root = this.getAttribute('root');
     }
 
-    if (!this.root) {
+    if (!this.root && this.router) {
       // I will take the first 
-
-      this.root = "/applications/" + appFolder;
+      this.base = this.router.getAttribute('base'); // the base application url.
+      this.root = "/applications/" + base;
     }
 
     if (this.hasAttribute('index')) {
@@ -262,7 +298,7 @@ class GlobularWebpageManager extends HTMLElement {
    *    </globular-sidebar-menu-item>
    * </globular-sidebar-menu-item>
    */
-  async loadPages(folder = this.root) {
+  async loadPages(folder = this.root, link = "") {
 
     // Clear the pages object
     this.pages = {};
@@ -390,7 +426,7 @@ class GlobularWebpageManager extends HTMLElement {
       const attributes = await this.fetchAttributes(dir.getPath());
 
       let alias = attributes.alias || dir.getName().replace('.html', '');
-      if (dir.getName() != appFolder) {
+      if (dir.getName() != this.base) {
         parentLnk += "/" + alias;
       }
 
@@ -506,11 +542,16 @@ class GlobularWebpageManager extends HTMLElement {
             this.appendChild(rootMenuItem);
           }
 
+          if (this.getPage(link) == undefined) {
+            link = this.index;
+          }
+
           if (this.index != undefined) {
-            let lnk = this.decodeRepeatedly(this.index);
+            let lnk = this.decodeRepeatedly(link);
             this.router.navigate([lnk]); // Trigger Angular routing
             this.setPage(lnk); // Set the page content
           }
+
           resolve(); // Resolve the Promise when done
         },
         64,
@@ -674,12 +715,12 @@ class GlobularWebpageManager extends HTMLElement {
     try {
       let url = getUrl(Backend.globular) + attributesPath;
       let token = ""
-      if(localStorage.getItem("user_token") != null){
+      if (localStorage.getItem("user_token") != null) {
         token = localStorage.getItem("user_token");
       }
       url += "?token=" + token;
-      url += "&application=" + appFolder;
-  
+      url += "&application=" + this.base;
+
       const response = await fetch(url);
       const json = await response.json();
       return json;

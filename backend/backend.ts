@@ -3,6 +3,7 @@ import { GeneratePeerTokenRequest, GeneratePeerTokenResponse, RefreshTokenRqst, 
 import { Peer } from "globular-web-client/resource/resource_pb";
 import { getAllPeersInfo } from "globular-web-client/api";
 import  Toastify from "toastify-js";
+import "toastify-js/src/toastify.css"
 import { AccountController } from "./account";
 import { FileInfo } from "globular-web-client/file/file_pb";
 import "@polymer/paper-input/paper-input";

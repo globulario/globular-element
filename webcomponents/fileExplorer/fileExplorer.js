@@ -1,6 +1,6 @@
 import getUuidByString from "uuid-by-string"
-import { generatePeerToken, Backend, displayError, displayMessage } from '../../backend/backend';
-import { displayAuthentication, randomUUID } from "../utility.js";
+import { generatePeerToken, Backend, displayError, displayAuthentication } from '../../backend/backend';
+import { randomUUID } from "../utility.js";
 import { FilesListView } from "./filesListView.js";
 import { FilesIconView } from "./filesIconView.js";
 import { PermissionsManager } from "../permissionManager/permissionManager.js";
@@ -1039,15 +1039,18 @@ export class FileExplorer extends HTMLElement {
 
         // read the root dir...
         if (AccountController.account == undefined) {
+            // display the authentication dialog.
             displayAuthentication("Authentication required to access the resource.", globule, () => {
-                let root = "/users/" + AccountController.account.getId() + "@" + AccountController.account.getDomain()
-                readRootDir(root)
+                let userDir = "/users/" + AccountController.account.getId() + "@" + AccountController.account.getDomain()
+                readRootDir(userDir)
             })
         } else {
+            // read the root dir...
             let root = "/users/" + AccountController.account.getId() + "@" + AccountController.account.getDomain()
             readRootDir(root)
         }
 
+        // read the application dir...
         let applicatonDir = "/applications/" + window.location.pathname.split('/')[1];
         readRootDir(applicatonDir)
 

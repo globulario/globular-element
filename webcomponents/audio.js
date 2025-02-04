@@ -1,6 +1,7 @@
 
 import WaveSurfer from "wavesurfer.js";
-import { secondsToTime, fireResize, displayError } from './utility';
+import { secondsToTime, fireResize } from './utility';
+import { displayError } from "../backend/backend";
 import { PlayList } from "./playlist";
 import { Dialog } from "./dialog"
 import { Audio, Poster } from "globular-web-client/title/title_pb";

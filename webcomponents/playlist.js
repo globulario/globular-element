@@ -1,8 +1,8 @@
 import parser from 'iptv-playlist-parser'
-import { displayError, secondsToTime } from "./utility";
+import { secondsToTime } from "./utility";
 import { fireResize } from '../Utility';
 import { TitleController } from '../backend/title';
-import { Backend, generatePeerToken, getUrl } from '../backend/backend';
+import { Backend, generatePeerToken, getUrl, displayError} from '../backend/backend';
 
 function replaceURLs(inputString, newURL) {
     const urlRegex = /(https?:\/\/[^\s]+)/g;

@@ -10,7 +10,8 @@
       "forceConsistentCasingInFileNames": true, // Ensure consistent file casing
       "resolveJsonModule": true,                // Allow importing JSON files
       "moduleResolution": "node",               // Use Node.js module resolution
-      "allowSyntheticDefaultImports": true      // Allow synthetic default imports
+      "allowSyntheticDefaultImports": true,      // Allow synthetic default imports
+      "strictNullChecks": false
     },
     "include": [
       "./**/*.ts"                         // Include all TypeScript files in the /backend directory
