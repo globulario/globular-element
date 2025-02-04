@@ -28,48 +28,45 @@ export class TitleController {
     // That function will be use to asscociate file with imdb information.
     static getImdbInfo(id: string, callback: (title_id: string) => {}, errorcallback: (err: any) => void, globule: Globular = Backend.globular) {
 
-        generatePeerToken(globule, token => {
-            if (__titles__[id]) {
-                if (__titles__[id].ID) {
-                    callback(__titles__[id])
-                } else {
-                    __titles__[id].callbacks.push(callback)
-                }
-                return
+        if (__titles__[id]) {
+            if (__titles__[id].ID) {
+                callback(__titles__[id])
+            } else {
+                __titles__[id].callbacks.push(callback)
             }
+            return
+        }
 
-            __titles__[id] = {}
-            __titles__[id].callbacks = []
-            __titles__[id].callbacks.push(callback)
+        __titles__[id] = {}
+        __titles__[id].callbacks = []
+        __titles__[id].callbacks.push(callback)
 
-            let url = getUrl(globule)
-            url += "/imdb_title?id=" + id
-            url += "&domain=" + globule.domain
-            url += "&token=" + token;
+        let url = getUrl(globule)
+        url += "/imdb_title?id=" + id
+        url += "&domain=" + globule.domain
 
-            var xmlhttp = new XMLHttpRequest();
-            xmlhttp.timeout = 10 * 1000
-            xmlhttp.onreadystatechange = function () {
-                if (this.readyState == 4 && (this.status == 201 || this.status == 200)) {
-                    var obj = JSON.parse(this.responseText);
-                    while (__titles__[obj.ID].callbacks.length > 0) {
-                        let callback = __titles__[obj.ID].callbacks.pop()
-                        callback(obj)
-                    }
-
-                    __titles__[obj.ID] = obj
-                    // Now I will 
-
-                } else if (this.readyState == 4) {
-                    errorcallback("fail to get info from query " + url + " status " + this.status)
+        var xmlhttp = new XMLHttpRequest();
+        xmlhttp.timeout = 10 * 1000
+        xmlhttp.onreadystatechange = function () {
+            if (this.readyState == 4 && (this.status == 201 || this.status == 200)) {
+                var obj = JSON.parse(this.responseText);
+                while (__titles__[obj.ID].callbacks.length > 0) {
+                    let callback = __titles__[obj.ID].callbacks.pop()
+                    callback(obj)
                 }
-            };
 
-            xmlhttp.open("GET", url, true);
-            xmlhttp.setRequestHeader("domain", globule.domain);
+                __titles__[obj.ID] = obj
+                // Now I will 
 
-            xmlhttp.send();
-        }, errorcallback)
+            } else if (this.readyState == 4) {
+                errorcallback("fail to get info from query " + url + " status " + this.status)
+            }
+        };
+
+        xmlhttp.open("GET", url, true);
+        xmlhttp.setRequestHeader("domain", globule.domain);
+
+        xmlhttp.send();
     }
 
 
@@ -78,18 +75,15 @@ export class TitleController {
         let rqst = new GetTitleFilesRequest
         rqst.setTitleid(id)
         rqst.setIndexpath(indexPath)
-        generatePeerToken(globule, token => {
-            if (globule.titleService == null) return errorCallback("Title service is not available")
+        if (globule.titleService == null) return errorCallback("Title service is not available")
 
-            // get the files associated with the title
-            globule.titleService.getTitleFiles(rqst, { token: token })
-                .then(rsp => {
-                    callback(rsp.getFilepathsList())
-                }).catch(err => {
-                    callback([])
-                })
-
-        }, errorCallback)
+        // get the files associated with the title
+        globule.titleService.getTitleFiles(rqst)
+            .then(rsp => {
+                callback(rsp.getFilepathsList())
+            }).catch(err => {
+                callback([])
+            })
     }
 
     /**
@@ -111,25 +105,23 @@ export class TitleController {
         if (globule == null) return callback(undefined)
 
         // get the video information from the backend
-        generatePeerToken(globule, token => {
-            if (globule.titleService == null) return errorCallback("Title service is not available")
+        if (globule.titleService == null) return errorCallback("Title service is not available")
 
-            let rqst = new GetVideoByIdRequest
-            rqst.setIndexpath(globule.config.DataPath + "/search/videos")
-            rqst.setVideoid(id)
+        let rqst = new GetVideoByIdRequest
+        rqst.setIndexpath(globule.config.DataPath + "/search/videos")
+        rqst.setVideoid(id)
 
-            globule.titleService.getVideoById(rqst, { token: token })
-                .then(rsp => {
-                    let video = rsp.getVideo()
-                    if (video == null) return callback(undefined)
-                    callback(video)
-                    __videos__[id] = video;
-                    (video as any).globule = globule;
-                })
-                .catch(err => {
-                    errorCallback(err)
-                })
-        }, errorCallback)
+        globule.titleService.getVideoById(rqst)
+            .then(rsp => {
+                let video = rsp.getVideo()
+                if (video == null) return callback(undefined)
+                callback(video)
+                __videos__[id] = video;
+                (video as any).globule = globule;
+            })
+            .catch(err => {
+                errorCallback(err)
+            })
     }
 
 
@@ -150,26 +142,24 @@ export class TitleController {
 
         if (globule == null) return callback(undefined)
 
-        generatePeerToken(globule, token => {
-            if (globule.titleService == null) return errorCallback("Title service is not available")
+        if (globule.titleService == null) return errorCallback("Title service is not available")
 
-            let rqst = new GetAudioByIdRequest
-            rqst.setIndexpath(globule.config.DataPath + "/search/audios")
-            rqst.setAudioid(id)
+        let rqst = new GetAudioByIdRequest
+        rqst.setIndexpath(globule.config.DataPath + "/search/audios")
+        rqst.setAudioid(id)
 
-            globule.titleService.getAudioById(rqst, { token: token })
-                .then(rsp => {
-                    let audio = rsp.getAudio()
-                    if (audio == null) return callback(undefined)
-                    __audios__[id] = audio;
-                    (audio as any).globule = globule;
-                    callback(audio)
-                })
-                .catch(err => {
-                    console.log(err)
-                    callback()
-                })
-        }, errorCallback)
+        globule.titleService.getAudioById(rqst)
+            .then(rsp => {
+                let audio = rsp.getAudio()
+                if (audio == null) return callback(undefined)
+                __audios__[id] = audio;
+                (audio as any).globule = globule;
+                callback(audio)
+            })
+            .catch(err => {
+                console.log(err)
+                callback()
+            })
     }
 
     static getFileTitlesInfo(file: FileInfo, callback: (titles?: any) => void, errorCallback: (err: any) => void, globule: Globular = Backend.globular) {
@@ -182,35 +172,32 @@ export class TitleController {
         rqst.setIndexpath(globule.config.DataPath + "/search/titles")
         rqst.setFilepath(file.getPath())
 
+        if (globule.titleService == null) return errorCallback("Title service is not available")
+        globule.titleService.getFileTitles(rqst, { domain: globule.domain })
+            .then(rsp => {
+                if (rsp.getTitles() == null) return callback()
+                let titles = rsp.getTitles()
+                if (titles?.getTitlesList) {
 
-        generatePeerToken(globule, token => {
-            if (globule.titleService == null) return errorCallback("Title service is not available")
-            globule.titleService.getFileTitles(rqst, { domain: globule.domain, token: token })
-                .then(rsp => {
-                    if (rsp.getTitles() == null) return callback()
-                    let titles = rsp.getTitles()
-                    if (titles?.getTitlesList) {
-
-                        if (titles.getTitlesList().length == 0) return errorCallback("No title found")
-                        for (let t of titles.getTitlesList()) {
-                            TitleController.setTitle(t);
-                            (t as any).globule = globule;
-                            (t as any).file = file;
-                        }
-
-                        (file as any).titles = titles.getTitlesList()
-
-                        callback(titles.getTitlesList())
-                    } else {
-                        errorCallback("No title found")
+                    if (titles.getTitlesList().length == 0) return errorCallback("No title found")
+                    for (let t of titles.getTitlesList()) {
+                        TitleController.setTitle(t);
+                        (t as any).globule = globule;
+                        (t as any).file = file;
                     }
 
-                })
-                .catch(err => {
-                    // so here no title was found...
-                    errorCallback(err)
-                })
-        }, errorCallback)
+                    (file as any).titles = titles.getTitlesList()
+
+                    callback(titles.getTitlesList())
+                } else {
+                    errorCallback("No title found")
+                }
+
+            })
+            .catch(err => {
+                // so here no title was found...
+                errorCallback(err)
+            })
     }
 
     static getFileVideosInfo(file: FileInfo, callback: (titles?: any) => void, errorCallback: (err: any) => void, globule: Globular = Backend.globular) {
@@ -218,36 +205,34 @@ export class TitleController {
         let rqst = new GetFileVideosRequest
         rqst.setIndexpath(globule.config.DataPath + "/search/videos")
         rqst.setFilepath(file.getPath())
-        generatePeerToken(globule, token => {
-            if (globule.titleService == null) return errorCallback("Title service is not available")
-            globule.titleService.getFileVideos(rqst, { domain: globule.domain, token: token })
-                .then(rsp => {
+        if (globule.titleService == null) return errorCallback("Title service is not available")
+        globule.titleService.getFileVideos(rqst, { domain: globule.domain })
+            .then(rsp => {
 
-                    if (rsp.getVideos() == null) return errorCallback("No video found")
+                if (rsp.getVideos() == null) return errorCallback("No video found")
 
-                    let videos = rsp.getVideos()
+                let videos = rsp.getVideos()
 
-                    if (videos?.getVideosList) {
-                        if (videos.getVideosList().length == 0) return errorCallback("No video found")
+                if (videos?.getVideosList) {
+                    if (videos.getVideosList().length == 0) return errorCallback("No video found")
 
-                        videos.getVideosList()
-                        for (let v of videos.getVideosList()) {
-                            TitleController.setVideo(v);
-                            (v as any).globule = globule;
-                            (v as any).file = file;
-                        }
-
-                        (file as any).videos = videos.getVideosList()
-
-                        callback(videos.getVideosList())
-                    } else {
-                        errorCallback("No video found")
+                    videos.getVideosList()
+                    for (let v of videos.getVideosList()) {
+                        TitleController.setVideo(v);
+                        (v as any).globule = globule;
+                        (v as any).file = file;
                     }
-                })
-                .catch(err => {
-                    errorCallback(err)
-                })
-        }, errorCallback)
+
+                    (file as any).videos = videos.getVideosList()
+
+                    callback(videos.getVideosList())
+                } else {
+                    errorCallback("No video found")
+                }
+            })
+            .catch(err => {
+                errorCallback(err)
+            })
     }
 
     static getFileAudiosInfo(file: FileInfo, callback: (audios?: any) => void, errorCallback: (err: any) => void, globule: Globular = Backend.globular) {
@@ -256,37 +241,35 @@ export class TitleController {
         rqst.setIndexpath(globule.config.DataPath + "/search/audios")
         rqst.setFilepath(file.getPath())
 
-        generatePeerToken(globule, token => {
-            if (globule.titleService == null) return errorCallback("Title service is not available")
+        if (globule.titleService == null) return errorCallback("Title service is not available")
 
-            globule.titleService.getFileAudios(rqst, { domain: globule.domain, token: token })
-                .then(rsp => {
-                    if (rsp.getAudios() == null) return errorCallback("No audio found")
+        globule.titleService.getFileAudios(rqst, { domain: globule.domain })
+            .then(rsp => {
+                if (rsp.getAudios() == null) return errorCallback("No audio found")
 
-                    let audios = rsp.getAudios()
-
+                let audios = rsp.getAudios()
 
 
-                    if (audios?.getAudiosList) {
-                        if (audios.getAudiosList().length == 0) return errorCallback("No audio found")
 
-                        for (let a of audios.getAudiosList()) {
-                            TitleController.setAudio(a);
-                            (a as any).globule = globule;
-                            (a as any).file = file;
-                        }
+                if (audios?.getAudiosList) {
+                    if (audios.getAudiosList().length == 0) return errorCallback("No audio found")
 
-                        callback(audios.getAudiosList())
-                    } else {
-                        errorCallback("No audio found")
+                    for (let a of audios.getAudiosList()) {
+                        TitleController.setAudio(a);
+                        (a as any).globule = globule;
+                        (a as any).file = file;
                     }
 
-                    callback(audios)
-                })
-                .catch(err => {
-                    callback([])
-                })
-        }, errorCallback)
+                    callback(audios.getAudiosList())
+                } else {
+                    errorCallback("No audio found")
+                }
+
+                callback(audios)
+            })
+            .catch(err => {
+                callback([])
+            })
     }
 
     static getTitleInfo(id: string, callback: (title?: any) => void, errorCallback: (err: any) => void, globule: Globular = Backend.globular) {
@@ -300,18 +283,18 @@ export class TitleController {
         rqst.setTitleid(id)
         rqst.setIndexpath(globule.config.DataPath + "/search/titles")
 
-        generatePeerToken(globule, token => {
-            if (globule.titleService == null) return errorCallback("Title service is not available")
+        if (globule.titleService == null) return errorCallback("Title service is not available")
 
-            globule.titleService.getTitleById(rqst, { token: token }).then(rsp => {
-                let title = rsp.getTitle()
-                if (title == null) return callback(undefined)
-                __titles__[id] = title;
-                (title as any).globule = globule;
-                callback(title)
-            })
+        globule.titleService.getTitleById(rqst).then(rsp => {
+            let title = rsp.getTitle()
+            if (title == null) return callback(undefined)
+            __titles__[id] = title;
+            (title as any).globule = globule;
+            callback(title)
+        }).catch(err => {
+            errorCallback(err)
+        })
 
-        }, errorCallback)
 
     }
 
@@ -350,11 +333,11 @@ export class TitleController {
                     domain: Backend.domain,
                 })
                 .then(rsp => {
-       
+
                     let result = rsp.getResult()
 
                     // Here I will return the value with it
-                    if(result == null) return errorCallback("No title found")
+                    if (result == null) return errorCallback("No title found")
 
                     callback(result.toJavaScript())
                 })

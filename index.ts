@@ -11,6 +11,7 @@ import './webcomponents/dialog'
 import "./webcomponents/audio"
 import "./webcomponents/video"
 import "./webcomponents/charts"
+import "./webcomponents/search/search"
 import "./webcomponents/informationManager/informations"
 import "./webcomponents/fileExplorer/fileExplorer"
 import "./webcomponents/blogPost/blogPosts"
@@ -44,7 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         webpageManager.router = document.querySelector('globular-router') as any;
-        
+
         if (webpageManager.router == null) {
             webpageManager.router = document.createElement('globular-router');
             document.body.appendChild(webpageManager.router);
@@ -71,6 +72,41 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             console.error('globular-webpage-manager or globular-router not found in DOM.');
         }
+
+
+        // Search result event...
+        Backend.eventHub.subscribe("_display_search_results_",
+            uuid => { },
+            evt => {
+                let pages = document.querySelector("globular-dynamic-page") as any
+                if (pages != undefined) {
+                    pages.style.display = "none"
+                }
+
+                // Display the search results
+                let searchResults = document.querySelector("globular-search-results") as any
+                if (searchResults != undefined) {
+                    searchResults.style.display = ""
+                    return
+                }
+
+            }, true)
+
+        Backend.eventHub.subscribe("_hide_search_results_",
+            uuid => { },
+            evt => {
+                let pages = document.querySelector("globular-dynamic-page") as any
+                if (pages != undefined) {
+                    pages.style.display = ""
+                }
+
+                // Hide the search results
+                let searchResults = document.querySelector("globular-search-results") as any
+                if (searchResults != undefined) {
+                    searchResults.style.display = "none"
+                    return
+                }
+            }, true)
     }, err => {
         console.log("Error:", err)
     });

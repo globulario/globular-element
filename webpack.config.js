@@ -75,6 +75,15 @@ module.exports = (env, argv) => {
             compress: true,
             port: 9000,
             historyApiFallback: true,
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+                'Access-Control-Allow-Headers': '*',
+            },
+            allowedHosts: 'all', // Ensures the dev server allows all hosts
+            client: {
+                webSocketURL: 'auto://0.0.0.0:0/ws', // Prevents CORS issues with WebSocket
+            },
         },
     };
 };

@@ -15,10 +15,6 @@ export class SearchResults extends HTMLElement {
         // Set the shadow dom.
         this.attachShadow({ mode: 'open' });
 
-
-        // The file explorer.
-        this._file_explorer_ = undefined
-
         // Innitialisation of the layout.
         this.shadowRoot.innerHTML = `
         <style>
@@ -33,11 +29,7 @@ export class SearchResults extends HTMLElement {
                 background-color: var(--surface-color);
                 color: var(--palette-text-primary);
                 user-select: none;
-                position: absolute;
-                top: 0px;
-                left: 0px;
-                bottom: 0px;
-                right: 0px;
+                height: 100%;
             }
 
             .header {
@@ -54,7 +46,7 @@ export class SearchResults extends HTMLElement {
                 --paper-tab-ink: var(--palette-action-disabled);
             }
 
-            #close-all-btn {
+            #close-btn {
                 width: 30px;
                 height: 30px;
                 padding: 3px;
@@ -80,7 +72,7 @@ export class SearchResults extends HTMLElement {
             <div class="header">
                 <paper-tabs id="search-results" scrollable>
                 </paper-tabs>
-                <paper-icon-button id="close-all-btn" icon="icons:close"></paper-icon-button>
+                <paper-icon-button id="close-btn" icon="icons:close"></paper-icon-button>
             </div>
             <h2 id="empty-search-msg" style="text-align: center; color: var(--palette-divider);">No search results to display...</h2>
             <slot></slot>
@@ -88,112 +80,104 @@ export class SearchResults extends HTMLElement {
         `
 
         this.tabs = this.shadowRoot.querySelector("#search-results")
+        document.addEventListener("backend-ready", (evt) => {
 
-        Backend.eventHub.subscribe("_hide_search_results_", uuid => { }, evt => {
-            if(this._file_explorer_ != undefined && evt["file-explorer-id"] != this._file_explorer_.id){
-                return
-            }
+            /*Backend.eventHub.subscribe("_hide_search_results_", uuid => { }, evt => {
 
-            if (this.parentNode) {
-                this.parentNode.removeChild(this)
-            }
-        }, true)
-
-        this.closeAllBtn = this.shadowRoot.querySelector("#close-all-btn")
-        this.closeAllBtn.onclick = () => {
-            Backend.eventHub.publish("_hide_search_results_", { "file-explorer-id": this._file_explorer_.id }, true)
-
-            // Hide the search results...
-            /*let facetFilters = ApplicationView.layout.sideMenu().getElementsByTagName("globular-facet-search-filter")
-            for (var i = 0; i < facetFilters.length; i++) {
-                let f = facetFilters[i]
-                f.parentNode.removeChild(f)
-            }*/
-        }
-
-        // So here I will create a new Search Result page if none exist...
-        Backend.eventHub.subscribe("__new_search_event__", uuid => { },
-            evt => {
-                if(this._file_explorer_ != undefined && evt["file-explorer-id"] != this._file_explorer_.id){
-                    return
+                if (this.parentNode) {
+                    this.parentNode.removeChild(this)
                 }
-                
-                this.shadowRoot.querySelector("#container").style.display = "flex"
+            }, true)*/
 
-                let uuid = "_" + getUuidByString(evt.query)
-                let tab = this.tabs.querySelector(`#${uuid}-tab`)
-                let query = evt.query.replaceAll(" -adult", "").replaceAll(" -youtube", "").replaceAll(" -TVEpisode", "").replaceAll(" -TVSerie", "").replaceAll(" -Movie", "")
-                if (tab == null) {
-                    let html = `
+            // So here I will create a new Search Result page if none exist...
+            Backend.eventHub.subscribe("__new_search_event__", uuid => { },
+                evt => {
+
+                    this.shadowRoot.querySelector("#container").style.display = "flex"
+
+                    let uuid = "_" + getUuidByString(evt.query)
+                    let tab = this.tabs.querySelector(`#${uuid}-tab`)
+                    let query = evt.query.replaceAll(" -adult", "").replaceAll(" -youtube", "").replaceAll(" -TVEpisode", "").replaceAll(" -TVSerie", "").replaceAll(" -Movie", "")
+                    if (tab == null) {
+                        let html = `
                     <paper-tab id="${uuid}-tab">
                         <span>${query} (<span id="${uuid}-total-span" style="font-size: 1rem;"></span>)</span>
                         <paper-icon-button id="${uuid}-close-btn" icon="icons:close"></paper-icon-button>
                     </paper-tab>
                     `
 
-                    let range = document.createRange()
-                    this.tabs.appendChild(range.createContextualFragment(html))
-                    tab = this.tabs.querySelector(`#${uuid}-tab`)
-                    tab.totalSpan = tab.querySelector(`#${uuid}-total-span`)
+                        let range = document.createRange()
+                        this.tabs.appendChild(range.createContextualFragment(html))
+                        tab = this.tabs.querySelector(`#${uuid}-tab`)
+                        tab.totalSpan = tab.querySelector(`#${uuid}-total-span`)
 
-                    tab.onclick = () => {
+                        tab.onclick = () => {
 
 
-                        let page = this.querySelector(`#${uuid}-results-page`)
-                        if (page == undefined) {
-                            return
+                            let page = this.querySelector(`#${uuid}-results-page`)
+                            if (page == undefined) {
+                                return
+                            }
+
+
+                            let index = 0
+                            for (var i = 0; i < this.children.length; i++) {
+                                this.children[i].style.display = "none";
+                                if (this.children[i].id == `${uuid}-results-page`) {
+                                    index = i
+                                }
+                            }
+
+                            this.tabs.selected = index;
+                            page.style.display = ""
+
+
+                            // display the filters...
+                            page.facetFilter.style.display = ""
                         }
 
+                        let closeBtn = this.tabs.querySelector(`#${uuid}-close-btn`)
+                        closeBtn.onclick = (evt_) => {
+                            evt_.stopPropagation()
+                            this.deletePageResults(uuid)
 
-                        let index = 0
-                        for (var i = 0; i < this.children.length; i++) {
-                            this.children[i].style.display = "none";
-                            if (this.children[i].id == `${uuid}-results-page`) {
-                                index = i
+                            if (this.children.length == 0) {
+                                this.shadowRoot.querySelector("#empty-search-msg").style.display = "block";
                             }
                         }
+                        this.tabs.selected = this.children.length;
 
-                        this.tabs.selected = index;
-                        page.style.display = ""
+                    } else {
+                        tab.click()
 
-
-                        // display the filters...
-                        page.facetFilter.style.display = ""
                     }
 
-                    let closeBtn = this.tabs.querySelector(`#${uuid}-close-btn`)
-                    closeBtn.onclick = (evt_) => {
-                        evt_.stopPropagation()
-                        this.deletePageResults(uuid)
-
-                        if (this.children.length == 0) {
-                            this.shadowRoot.querySelector("#empty-search-msg").style.display = "block";
+                    // Create a new page...
+                    let resultsPage = this.querySelector(`#${uuid}-results-page`)
+                    if (resultsPage == null) {
+                        resultsPage = new SearchResultsPage(uuid, evt.summary, evt.contexts, tab)
+                        for (var i = 0; i < this.children.length; i++) {
+                            this.children[i].style.display = "none";
                         }
+                        this.appendChild(resultsPage)
+                        this.shadowRoot.querySelector("#empty-search-msg").style.display = "none";
+
+                        // ApplicationView.layout.sideMenu().appendChild(resultsPage.facetFilter)
+
+                    } else if (evt.summary) {
+                        tab.totalSpan.innerHTML = resultsPage.getTotal() + ""
                     }
-                    this.tabs.selected = this.children.length;
 
-                } else {
-                    tab.click()
+                }, true)
+        })
 
-                }
+        this.closeBtn = this.shadowRoot.querySelector("#close-btn")
+        this.closeBtn.onclick = () => {
+            this.style.display = "none"  
+            Backend.eventHub.publish("_hide_search_results_", {}, true)
+        }
 
-                // Create a new page...
-                let resultsPage = this.querySelector(`#${uuid}-results-page`)
-                if (resultsPage == null) {
-                    resultsPage = new SearchResultsPage(uuid, evt.summary, evt.contexts, tab)
-                    for (var i = 0; i < this.children.length; i++) {
-                        this.children[i].style.display = "none";
-                    }
-                    this.appendChild(resultsPage)
-                    this.shadowRoot.querySelector("#empty-search-msg").style.display = "none";
 
-                    // ApplicationView.layout.sideMenu().appendChild(resultsPage.facetFilter)
-
-                } else if (evt.summary) {
-                    tab.totalSpan.innerHTML = resultsPage.getTotal() + ""
-                }
-
-            }, true)
     }
 
     connectedCallback() {
@@ -235,7 +219,7 @@ export class SearchResults extends HTMLElement {
 
         // close the results view
         if (this.tabs.querySelectorAll("paper-tab").length == 0) {
-            Backend.eventHub.publish("_hide_search_results_", {"file-explorer-id":this._file_explorer_.id}, true)
+            Backend.eventHub.publish("_hide_search_results_", { "id": this.id }, true)
         }
     }
 

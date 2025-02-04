@@ -1,6 +1,6 @@
 import getUuidByString from "uuid-by-string";
 import { PersonEditor } from "./personEditor";
-import { generatePeerToken } from "../../backend/backend";
+import { displayError, generatePeerToken } from "../../backend/backend";
 import { PermissionsManager } from "../permissionManager/permissionManager";
 import { EditableStringList } from "../list";
 
@@ -534,10 +534,10 @@ export class TitleInfoEditor extends HTMLElement {
                                         .then(rsp => {
                                             console.log("metadata was update!")
                                         })
-                                        .catch(err => ApplicationView.displayMessage(err, 3000))
+                                        .catch(err => displayError(err, 3000))
 
                                 })
-                                .catch(err => ApplicationView.displayMessage(err, 3000))
+                                .catch(err => displayError(err, 3000))
 
                             let parent = this.parentNode
                             parent.removeChild(this)
@@ -723,8 +723,8 @@ export class TitleInfoEditor extends HTMLElement {
                                 let addCastingPanel = parent.querySelector("#add-casting-panel")
                                 addCastingPanel.parentNode.removeChild(addCastingPanel)
 
-                            }).catch(err => ApplicationView.displayMessage(err, 3000))
-                    }).catch(err => ApplicationView.displayMessage(err, 3000))
+                            }).catch(err => displayError(err, 3000))
+                    }).catch(err => displayError(err, 3000))
 
             })
         }

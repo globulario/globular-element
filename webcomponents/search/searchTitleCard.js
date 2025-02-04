@@ -1,8 +1,9 @@
 import getUuidByString from "uuid-by-string";
-import { Backend, displayError, displayMessage, generatePeerToken, getUrl } from "../../backend/backend";
+import { displayError, displayMessage, getUrl } from "../../backend/backend";
 import { GetTitleByIdRequest, GetTitleFilesRequest } from "globular-web-client/title/title_pb";
 import { playVideo } from "../video";
 import { searchEpisodes } from "../informationManager/titleInfo";
+import { getImdbInfo } from "./search";
 
 function playTitleListener(player, title, indexPath) {
     if (!title) {
@@ -82,18 +83,16 @@ function playTitleListener(player, title, indexPath) {
                 let rqst = new GetTitleFilesRequest
                 rqst.setTitleid(nextEpisode.getId())
                 rqst.setIndexpath(indexPath)
-                generatePeerToken(globule, token => {
-                    globule.titleService.getTitleFiles(rqst, { domain: globule.domain, token: token })
-                        .then(rsp => {
-                            if (rsp.getFilepathsList().length > 0) {
-                                let path = rsp.getFilepathsList().pop()
-                                playVideo(path, (player, nextEpisode) => {
-                                    playTitleListener(player, nextEpisode, indexPath, globule)
-                                }, null, null, globule)
-                            }
-                        })
-                   toast.hideToast();
+                globule.titleService.getTitleFiles(rqst, { domain: globule.domain })
+                .then(rsp => {
+                    if (rsp.getFilepathsList().length > 0) {
+                        let path = rsp.getFilepathsList().pop()
+                        playVideo(path, (player, nextEpisode) => {
+                            playTitleListener(player, nextEpisode, indexPath, globule)
+                        }, null, null, globule)
+                    }
                 })
+           toast.hideToast();
             }
         };
     })
@@ -260,7 +259,6 @@ export class SearchTitleCard extends HTMLElement {
                     })
                     .catch(err => {
                         // in that case I will try with imdb...
-
                         getImdbInfo(title.getSerie(), serie => {
                             let url = serie.Poster.ContentURL
                             /*toDataURL(url, (dataUrl) => {*/
@@ -466,7 +464,7 @@ export class SearchTitleDetail extends HTMLElement {
                 let indexPath = globule.config.DataPath + "/search/titles"
                 rqst.setIndexpath(indexPath)
 
-                globule.titleService.getTitleFiles(rqst, { domain: globule.domain, token: localStorage.getItem("user_token") })
+                globule.titleService.getTitleFiles(rqst, { domain: globule.domain })
                     .then(rsp => {
                         if (rsp.getFilepathsList().length > 0) {
                             let path = rsp.getFilepathsList().pop()
@@ -569,7 +567,7 @@ export class SearchTitleDetail extends HTMLElement {
         let indexPath = globule.config.DataPath + "/search/titles"
         rqst.setIndexpath(indexPath)
 
-        globule.titleService.getTitleFiles(rqst, { domain: globule.domain, token: localStorage.getItem("user_token") })
+        globule.titleService.getTitleFiles(rqst, { domain: globule.domain })
             .then(rsp => {
                 if (rsp.getFilepathsList().length > 0) {
                     let path = rsp.getFilepathsList().pop()

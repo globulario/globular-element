@@ -1,5 +1,6 @@
-import { Backend } from "../../backend/backend";
+import { Backend, displayError } from "../../backend/backend";
 import { readBlogPost } from "../blogPost/blogPost";
+import { listToString } from "../utility";
 
 /**
  * Display basic blog informations.

@@ -192,7 +192,6 @@ export class FileExplorer extends HTMLElement {
         <span id="title-span" slot="title">File Explorer</span>
 
         <!-- Header action buttons -->
-        <globular-search-bar slot="search" id="search-bar"></globular-search-bar>
         <paper-icon-button slot="header" id="navigation-cloud-upload-btn" icon="icons:cloud-upload"></paper-icon-button>
         <paper-icon-button slot="header" id="navigation-create-dir-btn" icon="icons:create-new-folder"></paper-icon-button>
         <paper-icon-button slot="header" id="navigation-refresh-btn" icon="icons:refresh"></paper-icon-button>
@@ -262,12 +261,6 @@ export class FileExplorer extends HTMLElement {
         this.filesIconView.id = "globular-files-icon-view"
         this.filesIconView._file_explorer_ = this;
         this.appendChild(this.filesIconView)
-
-        // set the search bar...
-        this.searchBar = this.shadowRoot.querySelector("#search-bar")
-        this.searchBar._file_explorer_ = this
-
-
 
     }
 
@@ -809,62 +802,8 @@ export class FileExplorer extends HTMLElement {
                 }, false)
         }
 
-        if (this.listeners[`_display_search_results_${this.id}_event`] == undefined) {
-            // Search result event...
-            Backend.eventHub.subscribe("_display_search_results_",
-                uuid => { },
-                evt => {
-
-                    if (this.id != evt["file-explorer-id"]) {
-                        return
-                    }
-
-                    if (this._searchResults != undefined) {
-                        if (this._searchResults.parentNode != undefined) {
-                            this._searchResults.parentNode.removeChild(this._searchResults)
-                        }
-                    }
-
-                    // The search result panel where the result will be displayed.
-                    if (this._searchResults == null) {
-                        this._searchResults = new SearchResults()
-                        this._searchResults._file_explorer_ = this
-                    }
-
-                    this.appendChild(this._searchResults);
-
-                }, true)
-        }
-
-        if (this.listeners[`_hide_search_results_${this.id}_event`] == undefined) {
-            Backend.eventHub.subscribe("_hide_search_results_",
-                uuid => { },
-                evt => {
-                    if (this.id != evt["file-explorer-id"]) {
-                        return
-                    }
-
-                    // hide all the side bar...
-                    let facetFilters = this.getElementsByTagName("globular-facet-search-filter")
-                    for (var i = 0; i < facetFilters.length; i++) {
-                        let f = facetFilters[i]
-                        f.style.display = "none"
-                    }
-
-                    // The search results
-                    if (this._searchBar != undefined) {
-                        if (this._searchResults) {
-                            if (this._searchResults.parentNode != undefined) {
-                                this._searchResults.parentNode.removeChild(this._searchResults)
-                            }
-                        }
-                    }
-
-                    this._searchResults.parentNode.removeChild(this._searchResults)
-
-                }, true)
-        }
-
+ 
+   
         // Reload the content of a dir with the actual dir content description on the server.
         // must be call after file are deleted or renamed
         if (this.listeners[`reload_dir_${this.globule.domain}_event`] == undefined) {

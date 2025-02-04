@@ -2,7 +2,7 @@ import parser from 'iptv-playlist-parser'
 import { secondsToTime } from "./utility";
 import { fireResize } from '../Utility';
 import { TitleController } from '../backend/title';
-import { Backend, generatePeerToken, getUrl, displayError} from '../backend/backend';
+import { Backend, generatePeerToken, getUrl, displayError } from '../backend/backend';
 
 function replaceURLs(inputString, newURL) {
     const urlRegex = /(https?:\/\/[^\s]+)/g;
@@ -201,8 +201,11 @@ export class PlayList extends HTMLElement {
             this.container = this.shadowRoot.querySelector("#container")
 
             // set the container height the same as it parent.
-            if(this.parentElement.container)
-                this.container.style.height = this.parentElement.container.getHeight() - 86 + "px"
+            if (this.parentElement) {
+                if (this.parentElement.container) {
+                    this.container.style.height = this.parentElement.container.getHeight() - 86 + "px"
+                }
+            }
         })
     }
 

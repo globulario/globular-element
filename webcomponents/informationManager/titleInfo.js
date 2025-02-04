@@ -81,7 +81,7 @@ function getVideoPreview(parent, path, name, callback, globule) {
 
             let cancelBtn = toast.toastElement.querySelector("#imdb-lnk-cancel-button")
             cancelBtn.onclick = () => {
-               toast.hideToast();
+                toast.hideToast();
             }
 
             toast.toastElement.querySelector("#file-name").innerHTML = path.substring(path.lastIndexOf("/") + 1)
@@ -102,7 +102,7 @@ function getVideoPreview(parent, path, name, callback, globule) {
                         // remove the association.
                         previewDiv.parentNode.removeChild(previewDiv)
                         displayMessage("association was delete", 3000)
-                       toast.hideToast();
+                        toast.hideToast();
                     }).catch(err => displayError(err, 3000))
             }
 
@@ -150,32 +150,29 @@ function getVideoPreview(parent, path, name, callback, globule) {
  */
 function __getTitleFiles__(globule, indexPath, title, parent, callback) {
 
-    generatePeerToken(globule, token => {
-        let rqst = new GetTitleFilesRequest
-        rqst.setTitleid(title.getId())
-        rqst.setIndexpath(indexPath)
+    let rqst = new GetTitleFilesRequest
+    rqst.setTitleid(title.getId())
+    rqst.setIndexpath(indexPath)
 
-        globule.titleService.getTitleFiles(rqst, { domain: globule.domain, token: token })
-            .then(rsp => {
-                let previews = []
-                let _getVideoPreview_ = () => {
-                    if (rsp.getFilepathsList().length > 0) {
-                        let path = rsp.getFilepathsList().pop()
-                        // Return the first file only... 
-                        getVideoPreview(parent, path, title.getId(), p => {
+    globule.titleService.getTitleFiles(rqst, { domain: globule.domain })
+        .then(rsp => {
+            let previews = []
+            let _getVideoPreview_ = () => {
+                if (rsp.getFilepathsList().length > 0) {
+                    let path = rsp.getFilepathsList().pop()
+                    // Return the first file only... 
+                    getVideoPreview(parent, path, title.getId(), p => {
 
-                            parent.appendChild(p)
-                            _getVideoPreview_() // call again...
-                        }, globule)
-                    } else {
-                        callback(previews)
-                    }
+                        parent.appendChild(p)
+                        _getVideoPreview_() // call again...
+                    }, globule)
+                } else {
+                    callback(previews)
                 }
-                _getVideoPreview_() // call once...
-            })
-            .catch(err => { callback([]) })
-    }, err => displayError(err, 3000))
-
+            }
+            _getVideoPreview_() // call once...
+        })
+        .catch(err => { callback([]) })
 }
 
 
@@ -427,6 +424,7 @@ export class TitleInfo extends HTMLElement {
         this.titleDiv = titleDiv
         this.globule = globule
 
+
         // Innitialisation of the layout.
         this.shadowRoot.innerHTML = `
         <style>
@@ -531,6 +529,14 @@ export class TitleInfo extends HTMLElement {
             <paper-button id="delete-indexation-btn">Delete</paper-button>
         </div>
         `
+
+
+        if (!localStorage.getItem("user_token")) {
+            this.shadowRoot.querySelector("#edit-indexation-btn").style.display = "none"
+            this.shadowRoot.querySelector("#delete-indexation-btn").style.display = "none"
+        }
+
+
     }
 
     showTitleInfo(title) {
@@ -655,21 +661,24 @@ export class TitleInfo extends HTMLElement {
         }
 
 
-        let editor = new TitleInfoEditor(title, this)
+        // Here I will display the editor...
+        if (localStorage.getItem("user_token") != null) {
+            let editor = new TitleInfoEditor(title, this)
 
-        let editIndexationBtn = this.shadowRoot.querySelector("#edit-indexation-btn")
-        editIndexationBtn.onclick = () => {
-            // So here I will display the editor...
-            let parent = this.parentNode
-            parent.removeChild(this)
-            parent.appendChild(editor)
+            let editIndexationBtn = this.shadowRoot.querySelector("#edit-indexation-btn")
+            editIndexationBtn.onclick = () => {
+                // So here I will display the editor...
+                let parent = this.parentNode
+                parent.removeChild(this)
+                parent.appendChild(editor)
+            }
         }
 
         let deleteIndexationBtn = this.shadowRoot.querySelector("#delete-indexation-btn")
 
         // Delete the indexation from the database.
         deleteIndexationBtn.onclick = () => {
-           let toast = displayQuestion(``, `
+            let toast = displayQuestion(``, `
                <style>
                   
                </style>

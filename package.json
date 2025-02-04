@@ -18,6 +18,28 @@
     "webcomponent",
     "Globular"
   ],
+  "actions": [
+    "/persistence.PersistenceService/CreateConnection",
+    "/persistence.PersistenceService/Find",
+    "/persistence.PersistenceService/UpdateOne",
+    "/persistence.PersistenceService/FindOne",
+    "/persistence.PersistenceService/Delete",
+    "/persistence.PersistenceService/DeleteOne",
+    "/persistence.PersistenceService/ReplaceOne",
+    "/persistence.PersistenceService/InsertOne",
+    "/persistence.PersistenceService/Count",
+    "/file.FileService/FileUploadHandler",
+    "/file.FileService/ReadFile",
+    "/file.FileService/ReadDir",
+    "/file.FileService/ServeFileHandler",
+    "/file.FileService/GetFileInfo",
+    "/file.FileService/GetThumbnails",
+    "/ressource.RessourceService/CreateDirPermissions",
+    "/log.LogService/DeleteLog",
+    "/admin.AdminService/RunCmd",
+    "/services_manager.ServicesManagerService/GetServicesConfiguration",
+    "/services_manager.ServicesManagerService/GetAllActions"
+  ],
   "author": "Dave Courtois",
   "license": "ISC",
   "bugs": {

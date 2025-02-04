@@ -25,11 +25,6 @@ export class FacetSearchFilter extends HTMLElement {
                 padding: 10px;
                 padding-right: 30px;
                 max-width: 235px;
-                position: absolute;
-                overflow-y: auto;
-                top: 45px;
-                bottom: 0px;
-
             }
 
             ::-webkit-scrollbar {

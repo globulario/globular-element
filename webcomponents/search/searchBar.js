@@ -1,4 +1,4 @@
-import { Backend } from "../../backend/backend";
+import { Backend, displayMessage } from "../../backend/backend";
 import { search } from "./search";
 
 /**
@@ -20,8 +20,6 @@ export class SearchBar extends HTMLElement {
         this.videosCheckbox = null
         this.youtubeCheckbox = null
         this.adultCheckbox = null
-
-        this._file_explorer_ = undefined
     }
 
     // The connection callback.
@@ -204,7 +202,7 @@ export class SearchBar extends HTMLElement {
                 this.search()
 
             } else if (evt.key == "Escape") {
-                Backend.eventHub.publish("_hide_search_results_", {"file-explorer-id": this._file_explorer_.id}, true)
+                Backend.eventHub.publish("_hide_search_results_", {"id": this.id}, true)
             }
         }
 
@@ -214,7 +212,7 @@ export class SearchBar extends HTMLElement {
             div.style.boxShadow = "var(--dark-mode-shadow)"
             div.style.backgroundColor = "var(--surface-color)"
             contextSearchSelector.style.display = "none"
-            Backend.eventHub.publish("_display_search_results_", {"file-explorer-id": this._file_explorer_.id}, true)
+            Backend.eventHub.publish("_display_search_results_", {"id": this.id}, true)
 
 
 
@@ -290,12 +288,12 @@ export class SearchBar extends HTMLElement {
                 query += " -TVSerie"
             }
 
-            search(query, contexts, 0, this._file_explorer_.id)
+            search(query, contexts, 0, this.id)
             searchInput.value = ""
-            Backend.eventHub.publish("_display_search_results_", {"file-explorer-id": this._file_explorer_.id}, true)
+            Backend.eventHub.publish("_display_search_results_", {"id": this.id}, true)
 
         } else {
-            ApplicationView.displayMessage("You must selected a search context, Blog, Video or Title...", 3000)
+            displayMessage("You must selected a search context, Blog, Video or Title...", 3000)
             contextSearchSelector.style.display = "flex"
         }
     }

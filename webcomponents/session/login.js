@@ -5,7 +5,7 @@ import '@polymer/paper-input/paper-input.js';
 import '@polymer/paper-card/paper-card.js';
 import '@polymer/paper-button/paper-button.js';
 import '@polymer/paper-checkbox/paper-checkbox.js';
-import { Backend, displayMessage, generatePeerToken } from '../../backend/backend';
+import { Backend, displayError, displayMessage, generatePeerToken } from '../../backend/backend';
 import { AccountController } from '../../backend/account';
 import { NotificationController } from '../../backend/notification';
 
@@ -151,8 +151,8 @@ export class LoginBox extends HTMLElement {
 
                 NotificationController.sendNotifications(
                     notification,
-                    () => ApplicationView.displayMessage("Notification sent to the system administrator. An email will be sent to you soon.", 15000),
-                    (err) => ApplicationView.displayMessage(err, 3000)
+                    () => displayMessage("Notification sent to the system administrator. An email will be sent to you soon.", 15000),
+                    (err) => displayError(err, 3000)
                 );
             });
         });

@@ -236,7 +236,7 @@ export class InformationsManager extends HTMLElement {
             if (this.parentNode)
                 this.parentNode.removeChild(this)
         }
-        blogPostInfo.id = "_" + getUuidByString(blogPost.getId())
+        blogPostInfo.id = "_" + blogPost.getUuid()
         this.appendChild(blogPostInfo)
     }
 

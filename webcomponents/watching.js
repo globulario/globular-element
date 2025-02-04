@@ -8,7 +8,6 @@ import jwt from "jwt-decode";
 import { TitleController } from "../backend/title";
 import { mergeTypedArrays, uint8arrayToStringMethod } from "../Utility";
 
-
 /**
  * Search Box
  */
@@ -131,6 +130,11 @@ export class MediaWatching extends HTMLElement {
     }
 
     appendTitle(title, callback, errorCallback) {
+
+        if(localStorage.getItem("user_token") == null){
+            return
+        }
+
         if (this.querySelector("#_" + title._id)) {
 
             if (title.isVideo) {
@@ -454,44 +458,48 @@ export class WatchingMenu extends HTMLElement {
    * @param callback 
    */
     getWatchingTitles(callback) {
+        if(localStorage.getItem("user_token") == null){
+            callback([])
+            return
+        }
 
-        generatePeerToken(Backend.globular, (token) => {
-            const rqst = new FindRqst();
-            let decoded = jwt(token);
-            let userName = decoded.username;
-            let userDomain = decoded.user_domain;
-            const collection = "watching";
-            let id = userName.split("@").join("_").split(".").join("_");
-            let db = id + "_db";
+        let token = localStorage.getItem("user_token")
+        const rqst = new FindRqst();
+        let decoded = jwt(token);
+        let userName = decoded.username;
+        let userDomain = decoded.user_domain;
+        const collection = "watching";
+        let id = userName.split("@").join("_").split(".").join("_");
+        let db = id + "_db";
 
-            rqst.setId(id);
-            rqst.setDatabase(db);
-            rqst.setCollection(collection)
+        rqst.setId(id);
+        rqst.setDatabase(db);
+        rqst.setCollection(collection)
 
-            rqst.setQuery("{}"); // means all values.
+        rqst.setQuery("{}"); // means all values.
 
-            let globule = Backend.getGlobule(userDomain)
-            const stream = globule.persistenceService.find(rqst, {
-                domain: userDomain, token: token
-            });
+        let globule = Backend.getGlobule(userDomain)
+        const stream = globule.persistenceService.find(rqst, {
+            domain: userDomain, token: token
+        });
 
-            let data = [];
+        let data = [];
 
-            stream.on("data", rsp => {
-                data = mergeTypedArrays(data, rsp.getData())
-            });
+        stream.on("data", rsp => {
+            data = mergeTypedArrays(data, rsp.getData())
+        });
 
-            stream.on("status", (status) => {
-                if (status.code === 0) {
-                    uint8arrayToStringMethod(data, str => { let titles = JSON.parse(str); callback(titles) })
-                } else {
-                    console.log("error", status.details)
-                    callback([])
-                }
-            });
-        }, (err) => {
-            displayError(err, 3000)
-        })
+        stream.on("status", (status) => {
+            if (status.code === 0) {
+                uint8arrayToStringMethod(data, str => { let titles = JSON.parse(str); callback(titles) })
+            } else {
+                console.log("error", status.details)
+                callback([])
+            }
+        });
+
+
+        
     }
 
     /**
@@ -499,10 +507,7 @@ export class WatchingMenu extends HTMLElement {
      * @param callback The callback
      */
     getWacthingTitle(titleId, callback) {
-
-
         TitleController.getWacthingTitle(titleId, callback, (err) => { displayError(err, 3000) })
-
     }
 
     /**
@@ -510,6 +515,10 @@ export class WatchingMenu extends HTMLElement {
    * @param callback The callback
    */
     removeWacthingTitle(title) {
+
+        if(localStorage.getItem("user_token") == null){
+            return
+        }
 
         generatePeerToken(Backend.globular, (token) => {
 
@@ -556,6 +565,10 @@ export class WatchingMenu extends HTMLElement {
     }
 
     saveWatchingTitle(title, callback) {
+        if(localStorage.getItem("user_token") == null){
+            callback()
+            return
+        }
 
         if (!title.domain) {
             displayError(`title ${title._id} has no domain.`, 3000)

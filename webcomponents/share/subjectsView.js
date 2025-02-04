@@ -275,7 +275,7 @@ export class GlobularSubjectsView extends HTMLElement {
         // So here I will change the layout depending of the size.
         window.addEventListener('resize', () => {
             // set the postion to 0, 0
-            let w = ApplicationView.layout.width();
+            let w = document.querySelector("body").clientWidth;
             let accountsTab = this.shadowRoot.querySelector("#accounts-tab")
             let groupsTab = this.shadowRoot.querySelector("#groups-tab")
             let organizationsTab = this.shadowRoot.querySelector("#organizations-tab")

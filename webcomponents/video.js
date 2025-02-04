@@ -1,9 +1,9 @@
-import { Backend, generatePeerToken, getUrl, displayError} from '../backend/backend';
+import { Backend, generatePeerToken, getUrl, displayError } from '../backend/backend';
 import Plyr from 'plyr';
 import Hls from "hls.js";
 import { GetFileTitlesRequest, GetFileVideosRequest, GetTitleFilesRequest, Poster, Video } from "globular-web-client/title/title_pb";
 import { FileController } from "../backend/file";
-import {fireResize } from "./utility";
+import { fireResize } from "./utility";
 import { PlayList } from "./playlist"
 import { TitleController } from '../backend/title';
 import { add } from 'lodash';
@@ -27,14 +27,12 @@ function getTitleFiles(id, indexPath, globule, callback) {
     let rqst = new GetTitleFilesRequest
     rqst.setTitleid(id)
     rqst.setIndexpath(indexPath)
-    generatePeerToken(globule, token => {
-        globule.titleService.getTitleFiles(rqst, { token: token })
-            .then(rsp => {
-                callback(rsp.getFilepathsList())
-            }).catch(err => {
-                callback([])
-            })
-    })
+    globule.titleService.getTitleFiles(rqst)
+        .then(rsp => {
+            callback(rsp.getFilepathsList())
+        }).catch(err => {
+            callback([])
+        })
 }
 
 export function playVideos(videos, name) {
@@ -338,6 +336,19 @@ export class VideoPlayer extends HTMLElement {
             this.isMinimized = true
         }
 
+        // hide the watching menu if the user is not logged in.
+        if (localStorage.getItem("user_token") == null) {
+            this.shadowRoot.querySelector("globular-watching-menu").remove()
+        } else {
+            this.watchingMenu = this.shadowRoot.querySelector("globular-watching-menu")
+            this.watchingMenu.addEventListener("open-media-watching", (evt) => {
+                evt.stopPropagation()
+                evt.detail.mediaWatching.slot = "watching"
+                evt.detail.mediaWatching.style.zIndex = "1000"
+                this.appendChild(evt.detail.mediaWatching)
+            })
+        }
+
         this.container.setBackGroundColor("black")
 
         // override the minimize function...
@@ -445,11 +456,11 @@ export class VideoPlayer extends HTMLElement {
             let token = localStorage.getItem("user_token");
             let url_ = url.split("?token=")[0];
             let updatedUrl = url_ + "?token=" + token;
-        
+
             if (url === updatedUrl) {
                 return;
             }
-        
+
             // Get the current playback time
             let currentTime = this.video.currentTime;
             this.video.src = updatedUrl
@@ -460,22 +471,14 @@ export class VideoPlayer extends HTMLElement {
                 this.video.play();
             }
         };
-        
-        this.player.on('seeked', () =>{
+
+        this.player.on('seeked', () => {
             updateUrl(this.player.source)
         });
 
-        this.player.on('play', () =>{
+        this.player.on('play', () => {
             updateUrl(this.player.source)
         });
-
-        this.watchingMenu = this.shadowRoot.querySelector("globular-watching-menu")
-        this.watchingMenu.addEventListener("open-media-watching", (evt) => {
-            evt.stopPropagation()
-            evt.detail.mediaWatching.slot = "watching"
-            evt.detail.mediaWatching.style.zIndex = "1000"
-            this.appendChild(evt.detail.mediaWatching)
-        })
 
         // https://www.tomsguide.com/how-to/how-to-set-chrome-flags
         // you must set enable-experimental-web-platform-features to true
@@ -1115,73 +1118,86 @@ export class VideoPlayer extends HTMLElement {
             this.titleInfo = titleInfo
         }
 
-        generatePeerToken(globule, token => {
+        let url = path;
+        let token = localStorage.getItem("user_token")
 
-            let url = path;
-            if (!url.startsWith("http")) {
-                url = getUrl(globule)
+        if (!url.startsWith("http")) {
+            url = getUrl(globule)
 
-                path.split("/").forEach(item => {
-                    item = item.trim()
-                    if (item.length > 0) {
-                        url += "/" + encodeURIComponent(item)
-                    }
-                })
+            path.split("/").forEach(item => {
+                item = item.trim()
+                if (item.length > 0) {
+                    url += "/" + encodeURIComponent(item)
+                }
+            })
+
+            if (token) {
                 url += "?token=" + token
-                url += "&application=" + globule.application
-
-            } else {
-                var parser = document.createElement('a');
-                url += "?token=" + token
-                url += "&application=" + globule.application
-
-                parser.href = url
-                path = decodeURIComponent(parser.pathname)
+                if (globule.application) {
+                    url += "&application=" + globule.application
+                }
+            }else if(globule.application){
+                url += "?application=" + globule.application
             }
 
 
-            if (this.path == path) {
-                this.resume = true;
-                this.video.play()
-                return
-            } else {
-                // keep track of the current path
-                this.path = path
-                this.resume = false;
+        } else {
+            var parser = document.createElement('a');
+            if (token) {
+                url += "?token=" + token
+                if (globule.application) {
+                    url += "&application=" + globule.application
+                }
+            }else if(globule.application){
+                url += "?application=" + globule.application
             }
 
-            // validate url access.
-            fetch(url, { method: "HEAD" })
-                .then((response) => {
-                    if (response.status == 401) {
-                        displayError({ message: `unable to read the file ${path} Check your access privilege` })
-                        this.close()
-                        return
-                    } else if (response.status == 200) {
-                        if (File.hasLocal) {
-                            FileController.hasLocal(path, exists => {
-                                if (exists) {
-                                    // local-media
-                                    this.play_(path, globule, true, token)
-                                } else {
-                                    this.play_(path, globule, false, token)
-                                }
-                            })
-                        } else {
-                            this.play_(path, globule, false, token)
-                        }
+            parser.href = url
+            path = decodeURIComponent(parser.pathname)
+        }
+
+
+        if (this.path == path) {
+            this.resume = true;
+            this.video.play()
+            return
+        } else {
+            // keep track of the current path
+            this.path = path
+            this.resume = false;
+        }
+
+        // validate url access.
+        fetch(url, { method: "HEAD" })
+            .then((response) => {
+                if (response.status == 401) {
+                    displayError(`unable to read the file ${path} Check your access privilege`)
+                    this.close()
+                    return
+                } else if (response.status == 200) {
+                    if (File.hasLocal) {
+                        FileController.hasLocal(path, exists => {
+                            if (exists) {
+                                // local-media
+                                this.play_(path, globule, true, token)
+                            } else {
+                                this.play_(path, globule, false, token)
+                            }
+                        })
                     } else {
-                        throw new Error(response.status)
+                        this.play_(path, globule, false, token)
                     }
-                })
-                .catch((error) => {
-                    displayError("fail to read url " + url + "with error " + error)
-                    if (this.parentNode) {
-                        this.parentNode.removeChild(this)
-                    }
-                });
+                } else {
+                    throw new Error(response.status)
+                }
+            })
+            .catch((error) => {
+                displayError("fail to read url " + url + "with error " + error)
+                if (this.parentNode) {
+                    this.parentNode.removeChild(this)
+                }
+            });
 
-        }, err => displayError(err))
 
 
     }
@@ -1271,10 +1287,12 @@ export class VideoPlayer extends HTMLElement {
                         this.video.currentTime = currentTime
                     }
 
-                    TitleController.getWacthingTitle(this.titleInfo.getId(), (watching) => {
-                        this.video.currentTime = watching.currentTime
+                    if (localStorage.getItem("user_token")) {
+                        TitleController.getWacthingTitle(this.titleInfo.getId(), (watching) => {
+                            this.video.currentTime = watching.currentTime
 
-                    }, (err) => { /** nothing to do here  */ })
+                        }, (err) => { /** nothing to do here  */ })
+                    }
 
 
                     this.video.onended = () => {
@@ -1385,9 +1403,15 @@ export class VideoPlayer extends HTMLElement {
             }
         })
 
-        url += "?token=" + token
-        url += "&application=" + globule.application
-        
+        if (token) {
+            url += "?token=" + token
+            if (globule.application) {
+                url += "&application=" + globule.application
+            }
+        }else if(globule.application){
+            url += "?application=" + globule.application
+        }
+
         if (local) {
             url = "local-media://" + path
         }
@@ -1400,7 +1424,9 @@ export class VideoPlayer extends HTMLElement {
                 this.hls = new Hls(
                     {
                         xhrSetup: xhr => {
-                            xhr.setRequestHeader('token', token)
+                            if(token){
+                                xhr.setRequestHeader('token', token)
+                            }
                         }
                     }
                 );

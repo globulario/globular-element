@@ -297,8 +297,8 @@ export class SearchVideoCard extends HTMLElement {
             rqst.setTitleid(video.getId())
             let indexPath = globule.config.DataPath + "/search/videos"
             rqst.setIndexpath(indexPath)
-
-            globule.titleService.getTitleFiles(rqst, { domain: video.globule.domain, token: localStorage.getItem("user_token") })
+            
+            globule.titleService.getTitleFiles(rqst, { domain: video.globule.domain })
                 .then(rsp => {
                     if (rsp.getFilepathsList().length > 0) {
                         let path = rsp.getFilepathsList().pop()

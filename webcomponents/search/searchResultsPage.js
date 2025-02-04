@@ -262,6 +262,7 @@ export class SearchResultsPage extends HTMLElement {
                 flex-direction: column; 
                 overflow-y: auto;
                 overflow-x: hidden;
+                height: 100%;
             }
 
             #results-actions{
@@ -286,12 +287,7 @@ export class SearchResultsPage extends HTMLElement {
 
             #mosaic-view{
                 display: flex;
-                position: absolute;
-                top: 85px;
-                bottom: 0px;
-                right: 0px;
-                left: 245px;
-                overflow-y: auto;
+                height: 100%;
             }
 
             ::-webkit-scrollbar {
@@ -318,7 +314,7 @@ export class SearchResultsPage extends HTMLElement {
             }
 
             #content{
-                margin-left: 270px;
+                margin-left: 20px;
             }
 
             ::slotted([slot="mosaic_videos"]) {
@@ -706,8 +702,8 @@ export class SearchResultsPage extends HTMLElement {
     connectedCallback() {
 
         // set the results height
-        let results = this.shadowRoot.querySelector("#results")
-        results.style.height = `calc(100vh  + 65px)`
+        //let results = this.shadowRoot.querySelector("#results")
+        //results.style.height = `calc(100vh  + 65px)`
     }
 
     clear() {

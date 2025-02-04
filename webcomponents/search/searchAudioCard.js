@@ -1,4 +1,5 @@
 import getUuidByString from "uuid-by-string";
+import { displayError, displayMessage } from "../../backend/backend";
 
 export class SearchAudioCard extends HTMLElement {
     // attributes.
@@ -209,7 +210,7 @@ export class SearchAudioCard extends HTMLElement {
             evt.stopPropagation()
 
             // Here I will ask the user for confirmation before actually delete the contact informations.
-            let toast = ApplicationView.displayMessage(
+            let toast = displayMessage(
                 `<style>
                     
                     #yes-no-audio-delete-box{
@@ -250,7 +251,7 @@ export class SearchAudioCard extends HTMLElement {
                     this.onclose()
                 }
                toast.hideToast();
-                ApplicationView.displayMessage(
+                displayMessage(
                     `<div style="display: flex; flex-direction: column;">
                         <span style="font-size: .85rem;">${this.audio.getTitle()}</span>
                         <span>was remove</span>
@@ -314,7 +315,7 @@ export class SearchAudioCard extends HTMLElement {
             let indexPath = globule.config.DataPath + "/search/audios"
             rqst.setIndexpath(indexPath)
 
-            globule.titleService.getTitleFiles(rqst, { application: Application.application, domain: Application.domain, token: localStorage.getItem("user_token") })
+            globule.titleService.getTitleFiles(rqst, { domain: globule.domain })
                 .then(rsp => {
 
                     if (rsp.getFilepathsList().length > 0) {
@@ -322,7 +323,7 @@ export class SearchAudioCard extends HTMLElement {
                         playAudio(path, null, null, audio, globule)
                     }
 
-                }).catch(err => ApplicationView.displayMessage(err, 3000))
+                }).catch(err => displayError(err, 3000))
         }
 
         this.shadowRoot.querySelector("#play-album-btn").onclick = () => {

@@ -366,6 +366,13 @@ export class SessionMenu extends HTMLElement {
 
         this.shadowRoot.innerHTML = `
             <style>
+
+                #close-btn{
+                    position: absolute;
+                    right: 5px;
+                    top: 5px;
+                }
+
                 #accout-menu-header{
                     display: flex;
                     flex-direction: column;
@@ -386,7 +393,7 @@ export class SessionMenu extends HTMLElement {
 
                 #account_menu_div{
                     position: fixed;
-                    top: 65px;
+                    top: 70px;
                     right: 5px;
                     min-width: 300px;
                 }
@@ -468,6 +475,7 @@ export class SessionMenu extends HTMLElement {
                     flex-direction: column;
                     background-color: var(--surface-color);
                     color: var(--on-surface-color);
+                    position: relative;
                 }
 
                 #header h1 {
@@ -506,12 +514,7 @@ export class SessionMenu extends HTMLElement {
   
             <paper-card id="account_menu_div" style="display: none;">
                 <div class="card-content">
-                    <div id="header" style="width: 100%;">
-                    <div id="title">
-                        <h1 style="flex-grow: 1;">Session</h1>
-                        <paper-icon-button id="close-btn" icon="icons:close" role="button" tabindex="0" aria-disabled="false"></paper-icon-button>
-                    </div>
-                    </div>
+                    <paper-icon-button id="close-btn" icon="icons:close" role="button" tabindex="0" aria-disabled="false"></paper-icon-button>
                     <div id="accout-menu-header">
                         <div id="icon-div" title="click here to change profile picture">
                             <iron-icon id="profile-icon-big" style="height: 100px; width: 100px; color: var(--primary-color);" icon="account-circle"></iron-icon>
@@ -542,7 +545,7 @@ export class SessionMenu extends HTMLElement {
 
 
 
-        this.shadowRoot.querySelector("#profile-picture").onclick = () => {
+          this.shadowRoot.querySelector("#profile-icon-big").onclick = this.shadowRoot.querySelector("#profile-picture-big").onclick = () => {
             console.log("----> click")
         }
 
@@ -560,7 +563,7 @@ export class SessionMenu extends HTMLElement {
 
         this.shadowRoot.querySelector("#close-btn").onclick = () => {
             let accountMenuDiv = this.shadowRoot.querySelector("#account_menu_div")
-            accountMenuDiv.parentNode.removeChild(accountMenuDiv)
+            accountMenuDiv.style.display = "none"
         }
 
         // Set the account.

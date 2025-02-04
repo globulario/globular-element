@@ -148,37 +148,35 @@ export class FileController {
      */
     static getFile(globule: Globular, path: string, thumbnailWith: number, thumbnailHeight: number, callback: (f: FileInfo) => void, errorCallback: (err: string) => void) {
 
-        generatePeerToken(globule, token => {
 
-            let rqst = new GetFileInfoRequest()
-            rqst.setPath(path)
-            rqst.setThumbnailheight(thumbnailHeight)
-            rqst.setThumbnailwidth(thumbnailWith)
-            const application = window.location.pathname.split('/')[1];
+        let rqst = new GetFileInfoRequest()
+        rqst.setPath(path)
+        rqst.setThumbnailheight(thumbnailHeight)
+        rqst.setThumbnailwidth(thumbnailWith)
+        const application = window.location.pathname.split('/')[1];
 
 
-            if (!globule.fileService) {
-                errorCallback("File service not initialized.")
-                return
-            }
+        if (!globule.fileService) {
+            errorCallback("File service not initialized.")
+            return
+        }
 
-            globule.fileService.getFileInfo(rqst, { token: token, application: application, domain: globule.domain })
-                .then(rsp => {
-                    let f = rsp.getInfo()
-                    if (f == null) {
-                        errorCallback("File not found.")
-                        return
-                    }
+        globule.fileService.getFileInfo(rqst, { application: application, domain: globule.domain })
+            .then(rsp => {
+                let f = rsp.getInfo()
+                if (f == null) {
+                    errorCallback("File not found.")
+                    return
+                }
 
-                    (f as any).globule = globule;
+                (f as any).globule = globule;
 
-                    callback(f);
-                })
-                .catch(e => {
+                callback(f);
+            })
+            .catch(e => {
 
-                    errorCallback(e.message || e)
-                })
-        }, errorCallback)
+                errorCallback(e.message || e)
+            })
     }
 
 
@@ -276,58 +274,58 @@ export class FileController {
     private static _readDir(path: string, recursive: boolean, callback: (dir: FileInfo) => void, errorCallback: (err: any) => void, globule: Globular = Backend.globular, force: boolean = false) {
 
         // So here I will get the dir of the current user...
-        generatePeerToken(globule, token => {
+        let token = localStorage.getItem("user_token") || ""
 
-            // The globule must be defined.
+        // The globule must be defined.
+        if (!globule) {
+            throw "Globule not defined."
+        }
+
+        path = path.replace(globule.config.DataPath + "/files/", "/")
+
+        let id = globule.domain + "@" + path
+        let key = getUuidByString(id)
+
+        if (FileController._local_files[key] != undefined && !force) {
+            callback(FileController._local_files[key])
+            return
+        }
+
+        readDir(globule, path, recursive, (dir: FileInfo) => {
             if (!globule) {
-                throw "Globule not defined."
+                globule = Backend.globular
             }
 
-            path = path.replace(globule.config.DataPath + "/files/", "/")
+            // Here I will keep the dir info in the cache...
+            FileController._local_files[key] = dir;
+            (dir as any).globule = globule
 
-            let id = globule.domain + "@" + path
-            let key = getUuidByString(id)
+            // I will also set the globule for each file in the dir...
+            dir.getFilesList().forEach(f => {
+                (f as any).globule = globule
+                let path = f.getPath()
+                path = path.replace(globule.config.DataPath + "/files/", "/")
 
-            if (FileController._local_files[key] != undefined && !force) {
-                callback(FileController._local_files[key])
-                return
+                let id = globule.domain + "@" + path
+                let key = getUuidByString(id)
+                FileController._local_files[key] = f;
+            })
+
+            callback(dir)
+        }, err => {
+            // In case of error I will check if the token is expired...
+            if (err.message == "the token is expired") {
+                // In that case I will ask for login again...
+                displayAuthentication("Authentication required to access the resource.", globule, () => {
+                    // Here I will try to read the dir again...
+                    FileController._readDir(path, recursive, callback, errorCallback, globule, force)
+
+                }, errorCallback);
+            } else {
+                errorCallback(err)
             }
+        }, () => { }, 80, 80, token)
 
-            readDir(globule, path, recursive, (dir: FileInfo) => {
-                if (!globule) {
-                    globule = Backend.globular
-                }
-
-                // Here I will keep the dir info in the cache...
-                FileController._local_files[key] = dir;
-                (dir as any).globule = globule
-
-                // I will also set the globule for each file in the dir...
-                dir.getFilesList().forEach(f => {
-                    (f as any).globule = globule
-                    let path = f.getPath()
-                    path = path.replace(globule.config.DataPath + "/files/", "/")
-
-                    let id = globule.domain + "@" + path
-                    let key = getUuidByString(id)
-                    FileController._local_files[key] = f;
-                })
-
-                callback(dir)
-            }, err => {
-                // In case of error I will check if the token is expired...
-                if (err.message == "the token is expired") {
-                    // In that case I will ask for login again...
-                    displayAuthentication("Authentication required to access the resource.", globule, () => {
-                        // Here I will try to read the dir again...
-                        FileController._readDir(path, recursive, callback, errorCallback, globule, force)
-
-                    }, errorCallback);
-                } else {
-                    errorCallback(err)
-                }
-            }, () => { }, 80, 80, token)
-        }, errorCallback)
     }
 
 
@@ -346,14 +344,14 @@ export class FileController {
     }
 
     // Modify readText to use async behavior.
-    static async fetchText(path:string, globule = Backend.globular) {
+    static async fetchText(path: string, globule = Backend.globular) {
         return new Promise((resolve, reject) => {
             generatePeerToken(
                 globule,
                 (token) => {
                     const rqst = new ReadFileRequest();
                     rqst.setPath(path);
-                    let data:any = [];
+                    let data: any = [];
 
                     if (!globule.fileService) {
                         reject("File service not initialized.");
@@ -385,7 +383,7 @@ export class FileController {
     }
 
 
-    static readText(file: FileInfo, callback: (text: Uint8Array | string) => void, errorCallback: (err: any) => void, globule: Globular = Backend.globular, token: string = localStorage.getItem("user_token")||"") {
+    static readText(file: FileInfo, callback: (text: Uint8Array | string) => void, errorCallback: (err: any) => void, globule: Globular = Backend.globular, token: string = localStorage.getItem("user_token") || "") {
         // Read the file...
         let url = getUrl(globule)
 

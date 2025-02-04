@@ -147,8 +147,10 @@ export class VideoInfo extends HTMLElement {
         this.attachShadow({ mode: 'open' });
 
 
+
         this.titleDiv = titleDiv
         this.isShort = isShort
+
 
         // Innitialisation of the layout.
         this.shadowRoot.innerHTML = `
@@ -241,6 +243,12 @@ export class VideoInfo extends HTMLElement {
         </div>
         `
 
+        if (!localStorage.getItem("user_token")) {
+            this.shadowRoot.querySelector("#edit-indexation-btn").style.display = "none"
+            this.shadowRoot.querySelector("#delete-indexation-btn").style.display = "none"
+        }
+
+
     }
 
     /** Set video information... */
@@ -329,14 +337,16 @@ export class VideoInfo extends HTMLElement {
 
         })*/
 
-        let editor = new VideoInfoEditor(video, this)
+        if (localStorage.getItem("user_token") != null) {
+            let editor = new VideoInfoEditor(video, this)
 
-        let editIndexationBtn = this.shadowRoot.querySelector("#edit-indexation-btn")
-        editIndexationBtn.onclick = () => {
-            // So here I will display the editor...
-            let parent = this.parentNode
-            parent.removeChild(this)
-            parent.appendChild(editor)
+            let editIndexationBtn = this.shadowRoot.querySelector("#edit-indexation-btn")
+            editIndexationBtn.onclick = () => {
+                // So here I will display the editor...
+                let parent = this.parentNode
+                parent.removeChild(this)
+                parent.appendChild(editor)
+            }
         }
 
         let deleteIndexationBtn = this.shadowRoot.querySelector("#delete-indexation-btn")

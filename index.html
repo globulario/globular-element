@@ -16,22 +16,26 @@
     <globular-router base="globular-element"></globular-router>
     <globular-app-layout application-name="globular-element" >
         <div slot="app-side-menu">
-          <globular-sidebar header-background-image="assets/sidebar_head_bg.png">
+          <globular-sidebar header-background-image="/assets/sidebar_head_bg.png">
+            <img slot="header-logo" src="/assets/icon.png" alt="logo" style="width: 64px;">
+            <span slot="header-title">Globular</span>
+            <span  slot="header-subtitle">Personnal Cloud</span>
             <globular-sidebar-menu>
               <globular-webpage-manager root="/applications/globular-element" index="/home" icon="fa fa-file" >  
               </globular-webpage-manager>
           </globular-sidebar>
         </div>
-        <div slot="app-title">Globular</div>
-        
+        <div slot="header-title">Globular</div>
+        <globular-search-bar slot="search-bar" id="search-bar"></globular-search-bar>
         <globular-login slot="contextual-action-bar"></globular-login>
         <globular-session-menu slot="contextual-action-bar"></globular-session-menu>
 
         <div slot="app-content" style="height: calc(100vh - 64px); overflow-y: auto; overflow-x: hidden;">
           <div class="container">
             <div class="row">
-              <div class="col-12">
+              <div class="col-12" style="position: relative;">
                 <globular-dynamic-page></globular-dynamic-page>
+                <globular-search-results style="display: none;"></globular-search-results>
               </div>
             </div>
           </div>

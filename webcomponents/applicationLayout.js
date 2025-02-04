@@ -216,7 +216,10 @@ export class AppLayout extends HTMLElement {
           <app-header style="display: block;" class="mdl-layout__header is-casting-shadow" slot="header" reveals
             effects="waterfall">
             <app-toolbar>
+              
               <paper-icon-button icon="menu" drawer-toggle></paper-icon-button>
+
+              <slot name="search-bar"></slot>
 
               <div id="toolbar" style="display: flex; flex-grow: 1;">
                 <slot name="app-logo"></slot>

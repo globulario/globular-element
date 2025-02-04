@@ -1,3 +1,15 @@
+import f from "@editorjs/checklist";
+import { AudioInfoEditor } from "./audioInfomationsEditor";
+
+function toHoursAndMinutes(totalSeconds) {
+    const totalMinutes = Math.floor(totalSeconds / 60);
+
+    const seconds = totalSeconds % 60;
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+
+    return { h: hours, m: minutes, s: seconds };
+}
 
 /**
  * Display basic file informations.
@@ -9,6 +21,9 @@ export class AudioInfo extends HTMLElement {
         super()
         // Set the shadow dom.
         this.attachShadow({ mode: 'open' });
+
+        this.isShort = false
+
 
         // Innitialisation of the layout.
         this.shadowRoot.innerHTML = `
@@ -69,6 +84,13 @@ export class AudioInfo extends HTMLElement {
             </div>
         </div>
         `
+
+
+        if (!localStorage.getItem("user_token")) {
+            this.shadowRoot.querySelector("#edit-indexation-btn").style.display = "none"
+            this.shadowRoot.querySelector("#delete-indexation-btn").style.display = "none"
+        }
+
     }
 
     setAudio(audio) {
@@ -83,14 +105,17 @@ export class AudioInfo extends HTMLElement {
         let duration = toHoursAndMinutes(audio.getDuration())
         this.shadowRoot.querySelector("#duration-div").innerHTML = duration.m + ":" + duration.s + ""
 
-        let editor = new AudioInfoEditor(audio, this)
+        // Display the edit and delete buttons.
+        if (localStorage.getItem("user_token")) {
+            let editor = new AudioInfoEditor(audio, this)
 
-        let editIndexationBtn = this.shadowRoot.querySelector("#edit-indexation-btn")
-        editIndexationBtn.onclick = () => {
-            // So here I will display the editor...
-            let parent = this.parentNode
-            parent.removeChild(this)
-            parent.appendChild(editor)
+            let editIndexationBtn = this.shadowRoot.querySelector("#edit-indexation-btn")
+            editIndexationBtn.onclick = () => {
+                // So here I will display the editor...
+                let parent = this.parentNode
+                parent.removeChild(this)
+                parent.appendChild(editor)
+            }
         }
 
         let deleteIndexationBtn = this.shadowRoot.querySelector("#delete-indexation-btn")
