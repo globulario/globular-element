@@ -472,45 +472,49 @@ export class FileController {
                 url += "/" + encodeURIComponent(item)
         })
 
-        generatePeerToken(globule, token => {
-            // Set url query parameter.
-            url += "?domain=" + globule.domain
+        // Set url query parameter.
+        url += "?domain=" + globule.domain
+
+        let token = localStorage.getItem("user_token")
+        if (token)
             url += "&token=" + token
 
-            var xhr = new XMLHttpRequest();
-            xhr.timeout = 10 * 1000
-            xhr.open('GET', url, true);
+        var xhr = new XMLHttpRequest();
+        xhr.timeout = 10 * 1000
+        xhr.open('GET', url, true);
+        
+        if(token)
             xhr.setRequestHeader("token", token);
-            xhr.setRequestHeader("domain", globule.domain);
 
-            // Set responseType to 'arraybuffer', we want raw binary data buffer
-            xhr.responseType = 'blob';
+        xhr.setRequestHeader("domain", globule.domain);
 
-            xhr.onload = (rsp) => {
-                const xhr = rsp.currentTarget as XMLHttpRequest; // Cast to XMLHttpRequest
+        // Set responseType to 'arraybuffer', we want raw binary data buffer
+        xhr.responseType = 'blob';
 
-                if (xhr.status === 200) {
-                    const reader = new FileReader();
-                    reader.readAsDataURL(xhr.response as Blob); // Ensure `response` is treated as Blob
-                    reader.onload = (e: ProgressEvent<FileReader>) => {
-                        const result = e.target?.result; // Safely access `result`
-                        if (result) {
-                            const img = document.createElement("img");
-                            img.src = result.toString(); // Convert `result` to string for the `src` property
-                            images.push(img);
+        xhr.onload = (rsp) => {
+            const xhr = rsp.currentTarget as XMLHttpRequest; // Cast to XMLHttpRequest
 
-                            if (index < files.length) {
-                                FileController.getImage(callback, images, files, index, globule); // Recursive call
-                            } else if (callback) {
-                                callback(images);
-                            }
+            if (xhr.status === 200) {
+                const reader = new FileReader();
+                reader.readAsDataURL(xhr.response as Blob); // Ensure `response` is treated as Blob
+                reader.onload = (e: ProgressEvent<FileReader>) => {
+                    const result = e.target?.result; // Safely access `result`
+                    if (result) {
+                        const img = document.createElement("img");
+                        img.src = result.toString(); // Convert `result` to string for the `src` property
+                        images.push(img);
+
+                        if (index < files.length) {
+                            FileController.getImage(callback, images, files, index, globule); // Recursive call
+                        } else if (callback) {
+                            callback(images);
                         }
-                    };
-                }
-            };
+                    }
+                };
+            }
+        };
 
-            xhr.send();
-        }, err => { console.log(err) })
+        xhr.send();
     }
 
 }

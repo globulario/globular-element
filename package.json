@@ -38,7 +38,8 @@
     "/log.LogService/DeleteLog",
     "/admin.AdminService/RunCmd",
     "/services_manager.ServicesManagerService/GetServicesConfiguration",
-    "/services_manager.ServicesManagerService/GetAllActions"
+    "/services_manager.ServicesManagerService/GetAllActions",
+    "/search.SearchService/SearchDocuments"
   ],
   "author": "Dave Courtois",
   "license": "ISC",

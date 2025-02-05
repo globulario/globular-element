@@ -375,9 +375,12 @@ function searchBlogPosts(globule, query, contexts, indexPath, offset, max, callb
  */
 function searchWebpageContent(globule, query, contexts, offset, max, callback) {
 
+    let router = document.querySelector("globular-router")
+    let application = router.getAttribute("base")
+
     // Search over web-content.
     let rqst = new SearchDocumentsRequest
-    rqst.setPathsList([globule.config.DataPath + "/search/applications/" + Model.application])
+    rqst.setPathsList([globule.config.DataPath + "/search/applications/" + application])
     rqst.setLanguage("en")
     rqst.setFieldsList(["Text"])
     rqst.setOffset(offset)
@@ -386,7 +389,8 @@ function searchWebpageContent(globule, query, contexts, offset, max, callback) {
     let startTime = performance.now()
 
     let stream = globule.searchService.searchDocuments(rqst, {
-        domain: globule.domain
+        domain: globule.domain, 
+        application: application
     })
 
     let results = []

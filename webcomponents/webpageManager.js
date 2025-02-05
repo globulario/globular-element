@@ -11,6 +11,7 @@ import { html as beautify } from 'js-beautify';
 import prettify from 'html-prettify'
 import { MoveRequest } from "globular-web-client/file/file_pb";
 import { FileExplorer } from "./fileExplorer/fileExplorer";
+import { DeleteDocumentRequest, IndexJsonObjectRequest } from "globular-web-client/search/search_pb";
 
 
 /**
@@ -149,7 +150,7 @@ class GlobularWebpageManager extends HTMLElement {
           openRootFolderBtn.style.display = "flex";
           refreshPagesBtn.style.display = "flex";
           editModeBtn.setAttribute('edit-mode', 'true');
-          editModeBtn.style.color = "red";
+          editModeBtn.style.color = "var(--paper-green-500)";
           this.menuItems.forEach((menuItem) => {
             menuItem.setAttribute('edit-mode', 'true');
           });
@@ -175,11 +176,18 @@ class GlobularWebpageManager extends HTMLElement {
         openRootFolderBtn.style.display = "flex";
         refreshPagesBtn.style.display = "flex";
         editModeBtn.setAttribute('edit-mode', 'true');
-        editModeBtn.style.color = "red";
+        editModeBtn.style.color = "var(--paper-green-500)";
         this.menuItems.forEach((menuItem) => {
           menuItem.setAttribute('edit-mode', 'true');
         });
       }
+    });
+
+    // backend-ready custom event listener
+    document.addEventListener('backend-ready', (e) => {
+      Backend.eventHub.subscribe("login_success_", uuid => { }, (account) => {
+        this.shadowRoot.querySelector("#actions").style.display = "flex";
+      }, true);
     });
 
 
@@ -422,7 +430,7 @@ class GlobularWebpageManager extends HTMLElement {
       // attribute of a file or a directory are stored in a file called infos.json in the directory of the file (or directory)
       const attributes = await this.fetchAttributes(dir.getPath());
 
-      let alias = "" 
+      let alias = ""
       if (dir.getName() != this.base) {
         alias = attributes.alias || dir.getName().replace('.html', '');
         parentLnk += "/" + alias;
@@ -540,10 +548,10 @@ class GlobularWebpageManager extends HTMLElement {
             this.appendChild(rootMenuItem);
           }
 
-          if(this.base != undefined) {
-            link = link.replace(this.base+ "/", "");
+          if (this.base != undefined) {
+            link = link.replace(this.base + "/", "");
           }
-          
+
           if (this.getPage(link) == undefined) {
             link = this.index;
           }
@@ -1138,6 +1146,15 @@ class GlobularWebpageManager extends HTMLElement {
                   },
                 });
                 document.dispatchEvent(pageSelectEvent);
+
+                let name = path.split("/").pop();
+                this.saveSearchIndex(path, name, prettyHtml, () => {
+                  callback(this);
+                }, err => {
+                  displayError(err, 3000);
+                });
+
+
               },
               (error) => {
                 console.error("Failed to upload HTML page:", error);
@@ -1347,6 +1364,109 @@ class GlobularWebpageManager extends HTMLElement {
       abortHandler
     );
   }
+
+  /**
+   * Remove the search index of a element with a given id.
+   * @param {*} id The element id
+   * @param {*} callback The remove callback
+   * @param {*} errorCallback The error callback
+   */
+  removeSearchIndex(id, callback, errorCallback) {
+    let router = document.querySelector('globular-router')
+    let application = router.getAttribute('base')
+    let rqst = new DeleteDocumentRequest()
+    rqst.setPath(Backend.globular.config.DataPath + "/search/applications/" + application)
+    rqst.setId(id)
+
+    // So here I will set the address from the address found in the token and not 
+    // the address of the client itself.
+    let token = localStorage.getItem("user_token")
+    let domain = Backend.globular.domain
+
+    // call persist data
+    Backend.getGlobule(domain).searchService.deleteDocument(rqst,
+      {
+        token: token,
+        application: Model.application,
+        domain: domain
+      }
+    ).then(() => {
+      console.log("remove indexation success!")
+      callback(this)
+    }).catch(err => {
+      console.log("fail to remove indexation", err)
+      errorCallback(err)
+    })
+
+  }
+
+  // Save the search index.
+  async saveSearchIndex(pageId, pageName, htmlString, callback, errorCallback) {
+    try {
+      // Parse the HTML string into a document
+      let parser = new DOMParser();
+      let doc = parser.parseFromString(htmlString, "text/html");
+
+      function getDataElements(element, path = "body") {
+        let dataElements = [];
+
+        if (["SCRIPT", "STYLE", "NOSCRIPT"].includes(element.tagName)) {
+          return dataElements;
+        }
+
+        let textContent = element.textContent.trim();
+        let currentPath = path + (element.id ? `#${element.id}` : ` > ${element.tagName.toLowerCase()}`);
+
+        if (textContent.length > 0) {
+          dataElements.push({
+            Id: element.id || crypto.randomUUID(),
+            PageId: pageId,
+            PageName: pageName,
+            Text: textContent,
+            Tag: element.tagName.toLowerCase(),
+            Path: currentPath, // Ensuring this is properly defined
+            Attributes: Array.from(element.attributes).reduce((attrs, attr) => {
+              attrs[attr.name] = attr.value;
+              return attrs;
+            }, {})
+          });
+        }
+
+        Array.from(element.children).forEach(child => {
+          dataElements = dataElements.concat(getDataElements(child, currentPath));
+        });
+
+        return dataElements;
+      }
+      let dataElements = getDataElements(doc.body);
+
+      // Retrieve app info
+      let router = document.querySelector('globular-router');
+      let application = router.getAttribute('base');
+      let token = localStorage.getItem("user_token");
+      let domain = Backend.globular.domain;
+
+      // Index the extracted elements
+      let promises = dataElements.map(e => {
+        let rqst = new IndexJsonObjectRequest();
+        rqst.setPath(`${Backend.globular.config.DataPath}/search/applications/${application}`);
+        rqst.setJsonstr(JSON.stringify(e));
+        rqst.setLanguage("en");
+        rqst.setId("Id");
+        rqst.setIndexsList(["PageId", "Id", "Text"]);
+
+        return Backend.getGlobule(domain).searchService
+          .indexJsonObject(rqst, { token, application, domain });
+      });
+
+      await Promise.all(promises);
+      callback();
+    } catch (err) {
+      console.error(err);
+      errorCallback(err);
+    }
+  }
+
 
 }
 

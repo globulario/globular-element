@@ -1,3 +1,6 @@
+import { EditableStringList } from "../list";
+import { PermissionsManager } from "../permissionManager/permissionManager";
+
 /**
  * Modify Audio Informations
  */

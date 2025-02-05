@@ -36,7 +36,7 @@ export class SearchBar extends HTMLElement {
                 border: none;
                 margin-right: 11px;   
                 background: transparent;
-                color: var(--on-surface-color);
+                color: var(--on-primary-color);
                 box-sizing: border-box;
                 font-size: 1.2rem;
             }
@@ -55,6 +55,19 @@ export class SearchBar extends HTMLElement {
             input:focus{
                 outline: none;
             }
+
+            input:-webkit-autofill {
+                background-color: var(--surface-color) !important; /* Dark mode color */
+                color: var(--on-surface-color) !important;
+                box-shadow: 0 0 0px 1000px var(--surface-color) inset !important;
+            }
+
+            input:-webkit-autofill:not(:focus) {
+                background-color: var(--primary-color); /* Reverts to normal autofill color */
+                color: var(--on-primary-color);
+                box-shadow: 0 0 0px 1000px var(--primary-color) inset !important;
+            }
+
 
             #context-search-selector{
                 display: none;
@@ -127,7 +140,7 @@ export class SearchBar extends HTMLElement {
             <input id='search_input' placeholder="Search"></input>
             <paper-icon-button id="change-search-context" icon="icons:expand-more" style="--iron-icon-fill-color: var(--palette-text-accent); margin-right: 2px; height: 36px;" ></paper-icon-button>
             <paper-card id="context-search-selector">
-                <!--paper-checkbox class="context" checked name="webPages" id="context-search-selector-webpages">Webpages</paper-checkbox-->
+                <paper-checkbox class="context" checked name="webPages" id="context-search-selector-webpages">Webpages</paper-checkbox>
                 <paper-checkbox class="context" checked name="blogPosts" id="context-search-selector-blog-posts">Blog Posts</paper-checkbox>
                 <div style="display: flex; flex-direction: column">
                     <paper-checkbox class="context" checked name="titles" id="context-search-selector-titles">Titles</paper-checkbox>
@@ -149,7 +162,7 @@ export class SearchBar extends HTMLElement {
         </div>
         `
 
- 
+
         // give the focus to the input.
         let searchInput = this.shadowRoot.getElementById("search_input")
         let searchIcon = this.shadowRoot.getElementById("search_icon")
@@ -191,10 +204,16 @@ export class SearchBar extends HTMLElement {
 
 
         searchInput.onblur = () => {
-            div.style.boxShadow = ""
-            div.style.backgroundColor = ""
-            searchInput.style.backgroundColor = "transparent"
-            contextSearchSelector.style.display = "none"
+            if (contextSearchSelector.style.display != "flex") {
+                div.style.boxShadow = ""
+                div.style.backgroundColor = ""
+
+                searchInput.style.backgroundColor = "transparent"
+                searchInput.style.color = "var(--on-primary-color)"
+                searchIcon.style.color = "var(--on-primary-color)"
+                changeSearchContextBtn.style.color = "var(--on-primary-color)"
+                contextSearchSelector.style.display = "none"
+            }
         }
 
         searchInput.onkeydown = (evt) => {
@@ -202,7 +221,7 @@ export class SearchBar extends HTMLElement {
                 this.search()
 
             } else if (evt.key == "Escape") {
-                Backend.eventHub.publish("_hide_search_results_", {"id": this.id}, true)
+                Backend.eventHub.publish("_hide_search_results_", { "id": this.id }, true)
             }
         }
 
@@ -211,8 +230,12 @@ export class SearchBar extends HTMLElement {
             evt.stopPropagation();
             div.style.boxShadow = "var(--dark-mode-shadow)"
             div.style.backgroundColor = "var(--surface-color)"
+            searchInput.style.color = "var(--on-surface-color)"
+            searchIcon.style.color = "var(--on-surface-color)"
+            changeSearchContextBtn.style.color = "var(--on-surface-color)"
+
             contextSearchSelector.style.display = "none"
-            Backend.eventHub.publish("_display_search_results_", {"id": this.id}, true)
+            Backend.eventHub.publish("_display_search_results_", { "id": this.id }, true)
 
 
 
@@ -237,8 +260,6 @@ export class SearchBar extends HTMLElement {
 
             if (contextSearchSelector.style.display != "flex") {
                 contextSearchSelector.style.display = "flex"
-                div.style.boxShadow = "var(--dark-mode-shadow)"
-                div.style.backgroundColor = "var(--surface-color)"
             } else {
                 contextSearchSelector.style.display = "none"
                 searchInput.focus()
@@ -290,7 +311,7 @@ export class SearchBar extends HTMLElement {
 
             search(query, contexts, 0, this.id)
             searchInput.value = ""
-            Backend.eventHub.publish("_display_search_results_", {"id": this.id}, true)
+            Backend.eventHub.publish("_display_search_results_", { "id": this.id }, true)
 
         } else {
             displayMessage("You must selected a search context, Blog, Video or Title...", 3000)

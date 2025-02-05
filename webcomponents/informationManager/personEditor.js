@@ -1,6 +1,7 @@
 import getUuidByString from "uuid-by-string"
 import { displayError, displaySuccess, displayMessage, Backend } from "../../backend/backend"
 import '@polymer/iron-icons/editor-icons.js'
+import { CreatePersonRequest, CreateTitleRequest, CreateVideoRequest, DeletePersonRequest } from "globular-web-client/title/title_pb"
 
 /**
  * Use to edit title or video casting

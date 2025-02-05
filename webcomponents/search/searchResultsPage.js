@@ -6,6 +6,7 @@ import { SearchAudioCard } from "./searchAudioCard";
 import { FacetSearchFilter } from "./searchFacet";
 import { SearchTitleCard } from "./searchTitleCard";
 import { SearchVideoCard } from "./searchVideoCard";
+import { randomUUID } from "../utility";
 
 const MAX_DISPLAY_RESULTS = 20
 
@@ -378,6 +379,7 @@ export class SearchResultsPage extends HTMLElement {
                 </div>
 
                 <div id="results" style="">
+                    
                     <div id="mosaic-view" style="display: block;">
                         <slot name="mosaic_blogPosts" style="display: flex; flex-wrap: wrap;"></slot>
                         <slot name="mosaic_videos" style="display: flex; flex-wrap: wrap;"></slot>
@@ -390,6 +392,7 @@ export class SearchResultsPage extends HTMLElement {
                         <slot name="list_titles" style="display: flex; flex-wrap: wrap;"> </slot>
                         <slot name="list_audios" style="display: flex; flex-wrap: wrap;"> </slot>
                     </div>
+                    <div id="webpage-search-results"></div>
                     <div id="results-actions">
                         <div id="results-actions-btns" style="">
                             <paper-icon-button id="previous-results-btn" icon="icons:chevron-left" style="visibility: hidden;"></paper-icon-button>
@@ -397,6 +400,7 @@ export class SearchResultsPage extends HTMLElement {
                             <paper-icon-button id="next-results-btn" icon="icons:chevron-right"></paper-icon-button>
                         </div>
                     </div>
+                   
                 </div>
             </div>
         </div>
@@ -475,6 +479,8 @@ export class SearchResultsPage extends HTMLElement {
         Backend.eventHub.subscribe(`${uuid}_search_hit_event__`, listner_uuid => { },
             evt => {
 
+                console.log("------------------> ????", evt)
+                
                 Backend.eventHub.publish("_display_search_results_", {"file-explorer-id":evt["file-explorer-id"]}, true)
                 if (this.hits_by_context[evt.context] == null) {
                     this.hits_by_context[evt.context] = []
@@ -490,14 +496,16 @@ export class SearchResultsPage extends HTMLElement {
                         } else if (hit.hasAudio()) {
                             return getUuidByString(hit.getAudio().getId())
                         }
-                    } else {
+                    } else if (hit.hasBlog()) {
                         return hit.getBlog().getUuid()
+                    } else{
+                        console.log("------------------> ????", hit)
                     }
                 }
 
                 let hit = evt.hit
                 let uuid = getHitUuid(hit)
-
+  
                 if (this.hits[uuid] == undefined) {
 
                     this.hits[uuid] = hit
