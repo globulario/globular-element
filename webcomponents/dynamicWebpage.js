@@ -1,14 +1,14 @@
 export class DynamicPage extends HTMLElement {
-    constructor() {
-        super();
+  constructor() {
+    super();
 
-        this.attachShadow({ mode: 'open' });
+    this.attachShadow({ mode: 'open' });
 
 
-        this.pageHtml = '';
-        this.errorMessage = '';
+    this.pageHtml = '';
+    this.errorMessage = '';
 
-        this.shadowRoot.innerHTML = `
+    this.shadowRoot.innerHTML = `
         <style>
           .dynamic-container {
             font-family: Arial, sans-serif;
@@ -43,103 +43,113 @@ export class DynamicPage extends HTMLElement {
         </div>
       `;
 
-        this.iframe = this.shadowRoot.querySelector('.content-frame');
-        this.errorDiv = this.shadowRoot.querySelector('.error-message');
-    }
-
-    connectedCallback() {
-        document.addEventListener('pageSelected', (event) => this.updatePageContent(event.detail));
-        document.addEventListener('pageError', (event) => this.displayErrorMessage(event.detail));
-    }
-
-    disconnectedCallback() {
-        document.removeEventListener('pageSelected', this.updatePageContent);
-        document.removeEventListener('pageError', this.displayErrorMessage);
-    }
-
-    updatePageContent({ path, content }) {
-
-        this.title = `Page: ${path}`;
-        this.pageHtml = content;
-        this.errorMessage = '';
-
-        this.iframe.srcdoc = this.pageHtml;
-        this.errorDiv.hidden = true;
-
-        this.iframe.onload = () => this.adjustIframeHeight();
-    }
-
-    displayErrorMessage(message) {
-
-        this.errorMessage = message;
-        this.pageHtml = '';
-        this.iframe.srcdoc = '';
-
-        this.errorDiv.textContent = this.errorMessage;
-        this.errorDiv.hidden = false;
-    }
-
-    adjustIframeHeight() {
-      const iframeDocument = this.iframe.contentDocument || this.iframe.contentWindow?.document;
-  
-      if (iframeDocument) {
-          const adjustHeight = () => {
-              const body = iframeDocument.body;
-              const html = iframeDocument.documentElement;
-  
-              // Reset margin and padding to avoid extra space
-              body.style.margin = 0;
-              body.style.padding = 0;
-              html.style.margin = 0;
-              html.style.padding = 0;
-              body.style.overflow = '';
-  
-              // Calculate the content height of the iframe
-              const contentHeight = Math.max(
-                  body.scrollHeight, body.offsetHeight,
-                  html.scrollHeight, html.offsetHeight
-              );
-  
-              // Get iframe computed style to account for padding and borders
-              const iframeStyle = window.getComputedStyle(this.iframe);
-              const iframePadding = parseInt(iframeStyle.paddingTop) + parseInt(iframeStyle.paddingBottom);
-              const iframeBorder = parseInt(iframeStyle.borderTopWidth) + parseInt(iframeStyle.borderBottomWidth);
-  
-              // Adjust height considering the iframe's padding and border
-              const adjustedHeight = contentHeight + iframePadding + iframeBorder;
-  
-              // Set the iframe height to the adjusted content height
-              this.iframe.style.height = `${adjustedHeight}px`;
-  
-              // Check if the scrollbar is visible and keep adjusting until it is not
-              const hasScrollbar = iframeDocument.documentElement.scrollHeight > iframeDocument.documentElement.clientHeight +15;
-  
-              if (hasScrollbar) {
-                  // If scrollbar is visible, increase height slightly and check again
-                  this.iframe.style.height = `${adjustedHeight + 1}px`;  // Slightly increase height
-                  setTimeout(adjustHeight, 100);  // Recursively adjust until no scrollbar
-              }else{
-                body.style.overflow = 'hidden';
-              }
-          };
-  
-          // Trigger height adjustment when iframe content is loaded
-          this.iframe.onload = adjustHeight;
-  
-          // If the iframe is already loaded, trigger adjustment immediately
-          if (this.iframe.contentWindow.document.readyState === 'complete') {
-              adjustHeight();
-          }
-  
-          // Adjust iframe height when the window is resized
-          window.addEventListener('resize', adjustHeight);
-  
-          // Fire resize event to trigger height adjustment
-          setTimeout(() => window.dispatchEvent(new Event('resize')), 5);
-      }
+    this.iframe = this.shadowRoot.querySelector('.content-frame');
+    this.errorDiv = this.shadowRoot.querySelector('.error-message');
   }
-  
-  
+
+  connectedCallback() {
+    document.addEventListener('pageSelected', (event) => this.updatePageContent(event.detail));
+    document.addEventListener('pageError', (event) => this.displayErrorMessage(event.detail));
+  }
+
+  disconnectedCallback() {
+    document.removeEventListener('pageSelected', this.updatePageContent);
+    document.removeEventListener('pageError', this.displayErrorMessage);
+  }
+
+  updatePageContent({ path, content }) {
+    this.title = `Page: ${path}`;
+    this.pageHtml = content;
+    this.errorMessage = '';
+
+    // **Clear the iframe before updating content**
+    let iframe = document.createElement('iframe'); // Create a new iframe
+    iframe.className = 'content-frame'; // Set class name
+    iframe.width = '100%'; // Set width to 100%
+    iframe.frameBorder = '0'; // Set frame border to 0
+
+
+    this.shadowRoot.querySelector('.dynamic-container').replaceChild(iframe, this.iframe); // Replace the old iframe
+    this.iframe = iframe; // Update the iframe reference
+
+    setTimeout(() => {
+      this.iframe.srcdoc = this.pageHtml; // Set new content
+      this.iframe.onload = () => this.adjustIframeHeight(); // Restore event listener
+      this.errorDiv.hidden = true;
+    }, 10); // Small delay to ensure proper reset
+  }
+
+  displayErrorMessage(message) {
+
+    this.errorMessage = message;
+    this.pageHtml = '';
+    this.iframe.srcdoc = '';
+
+    this.errorDiv.textContent = this.errorMessage;
+    this.errorDiv.hidden = false;
+  }
+
+  adjustIframeHeight() {
+    const iframeDocument = this.iframe.contentDocument || this.iframe.contentWindow?.document;
+
+    if (iframeDocument) {
+      const adjustHeight = () => {
+        const body = iframeDocument.body;
+        const html = iframeDocument.documentElement;
+
+        // Reset margin and padding to avoid extra space
+        body.style.margin = 0;
+        body.style.padding = 0;
+        html.style.margin = 0;
+        html.style.padding = 0;
+        body.style.overflow = '';
+
+        // Calculate the content height of the iframe
+        const contentHeight = Math.max(
+          body.scrollHeight, body.offsetHeight,
+          html.scrollHeight, html.offsetHeight
+        );
+
+        // Get iframe computed style to account for padding and borders
+        const iframeStyle = window.getComputedStyle(this.iframe);
+        const iframePadding = parseInt(iframeStyle.paddingTop) + parseInt(iframeStyle.paddingBottom);
+        const iframeBorder = parseInt(iframeStyle.borderTopWidth) + parseInt(iframeStyle.borderBottomWidth);
+
+        // Adjust height considering the iframe's padding and border
+        const adjustedHeight = contentHeight + iframePadding + iframeBorder;
+
+        // Set the iframe height to the adjusted content height
+        this.iframe.style.height = `${adjustedHeight}px`;
+
+        // Check if the scrollbar is visible and keep adjusting until it is not
+        const hasScrollbar = iframeDocument.documentElement.scrollHeight > iframeDocument.documentElement.clientHeight + 15;
+
+        if (hasScrollbar) {
+          // If scrollbar is visible, increase height slightly and check again
+          this.iframe.style.height = `${adjustedHeight + 1}px`;  // Slightly increase height
+          setTimeout(adjustHeight, 100);  // Recursively adjust until no scrollbar
+        } else {
+          body.style.overflow = 'hidden';
+        }
+      };
+
+      // Trigger height adjustment when iframe content is loaded
+      this.iframe.onload = adjustHeight;
+
+      // If the iframe is already loaded, trigger adjustment immediately
+      if (this.iframe.contentWindow.document.readyState === 'complete') {
+        adjustHeight();
+      }
+
+      // Adjust iframe height when the window is resized
+      window.addEventListener('resize', adjustHeight);
+
+      // Fire resize event to trigger height adjustment
+      setTimeout(() => window.dispatchEvent(new Event('resize')), 5);
+    }
+  }
+
+
 }
 
 customElements.define('globular-dynamic-page', DynamicPage);

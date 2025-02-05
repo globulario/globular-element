@@ -188,6 +188,103 @@ class GlobularWebpageManager extends HTMLElement {
       Backend.eventHub.subscribe("login_success_", uuid => { }, (account) => {
         this.shadowRoot.querySelector("#actions").style.display = "flex";
       }, true);
+
+      // Listen for the search result click event
+      // Listen for the search result click event
+      document.addEventListener("webpage-search-result-clicked", (e) => {
+        const { pageId, elementId, elementPath, query } = e.detail;
+
+        let searchResult = document.querySelector("globular-search-results");
+        if (searchResult) {
+          searchResult.style.display = "none";
+        }
+
+        let dynamicWebpage = document.querySelector("globular-dynamic-page");
+        if (dynamicWebpage) {
+          dynamicWebpage.style.display = "";
+        }
+
+        // Set the page content and ensure the iframe loads
+        this.setPage(pageId, () => {
+          let iframe = dynamicWebpage.iframe;
+          if (!iframe) return;
+
+          // Function to execute when the iframe content is ready
+          function processIframeContent(iframeDoc) {
+            setTimeout(() => {
+              let targetElement = iframeDoc.getElementById(elementId);
+              if (targetElement) {
+                let position = targetElement.getBoundingClientRect();
+
+                // Get the iframe's content div
+                let appContentDiv = document.querySelector('div[slot="app-content"]');
+
+                // Scroll smoothly to the element
+                appContentDiv.scrollTo({
+                  top: position.top + iframe.contentWindow.scrollY - (65 + 10),
+                  behavior: "smooth",
+                });
+
+                // Remove any previously highlighted text
+                let highlighted = iframeDoc.getElementsByClassName("highlighted");
+                Array.from(highlighted).forEach((el) => {
+                  if (el.lowlight) el.lowlight();
+                });
+
+                // **Query Parsing to Extract Words to Highlight**
+                let searchTerms = query
+                  .split(/\s+/) // Split by whitespace
+                  .filter(term => !term.startsWith("-")) // Exclude negative terms
+                  .map(term => term.trim()) // Remove any extra spaces
+                  .filter(term => term.length > 0); // Remove empty terms
+
+                if (searchTerms.length === 0) return;
+
+                // **Highlight Matching Words**
+                let regex = new RegExp(`\\b(${searchTerms.join("|")})\\b`, "gi");
+                let text = targetElement.innerHTML;
+
+                text = text.replace(/(<mark class="highlight">|<\/mark>)/gim, ""); // Remove existing highlights
+                targetElement.innerHTML = text.replace(regex, '<mark class="highlight">$&</mark>');
+                targetElement.classList.add("highlighted");
+
+                // **Function to Remove Highlight When Needed**
+                targetElement.lowlight = () => {
+                  targetElement.innerHTML = text;
+                  targetElement.classList.remove("highlighted");
+                  delete targetElement.lowlight;
+                };
+              }
+            }, 500); // Delay to allow page load transition
+          }
+
+          // Ensure iframe is fully loaded before trying to access its content
+          iframe.addEventListener("load", () => {
+            let iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+            if (!iframeDoc) return;
+
+            // If the document is already loaded, execute immediately
+            if (iframeDoc.readyState === "complete") {
+              console.log("Iframe document is already loaded.");
+              processIframeContent(iframeDoc);
+            } else {
+              // Wait for DOMContentLoaded inside the iframe
+              iframeDoc.addEventListener("DOMContentLoaded", () => {
+                console.log("DOMContentLoaded fired inside iframe.");
+                processIframeContent(iframeDoc);
+              });
+            }
+          });
+
+          // In case the iframe is already loaded (if setPage was too fast)
+          let iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+          if (iframeDoc && iframeDoc.readyState === "complete") {
+            console.log("Iframe document was already fully loaded.");
+            processIframeContent(iframeDoc);
+          }
+        });
+      });
+
     });
 
 
@@ -601,7 +698,7 @@ class GlobularWebpageManager extends HTMLElement {
   }
 
   // Set the page content
-  setPage(lnk) {
+  setPage(lnk, callback) {
 
     // here I will format the link to be change %20 to space and so on
     lnk = this.decodeRepeatedly(lnk);
@@ -625,6 +722,12 @@ class GlobularWebpageManager extends HTMLElement {
 
         // Dispatch the event on the document (or a specific element)
         document.dispatchEvent(pageSelectEvent);
+
+        // Execute the callback function if provided
+        if (callback) {
+          callback();
+        }
+
       }, err => {
         const pageSelectEvent = new CustomEvent('pageSelected', {
           detail: {
@@ -1148,11 +1251,12 @@ class GlobularWebpageManager extends HTMLElement {
                 document.dispatchEvent(pageSelectEvent);
 
                 let name = path.split("/").pop();
-                this.saveSearchIndex(path, name, prettyHtml, () => {
-                  callback(this);
-                }, err => {
-                  displayError(err, 3000);
-                });
+                this.saveSearchIndex(path, name, prettyHtml,
+                  () => {
+                    /** nothing to do here... */
+                  }, err => {
+                    displayError(err, 3000);
+                  });
 
 
               },
@@ -1391,10 +1495,8 @@ class GlobularWebpageManager extends HTMLElement {
         domain: domain
       }
     ).then(() => {
-      console.log("remove indexation success!")
       callback(this)
     }).catch(err => {
-      console.log("fail to remove indexation", err)
       errorCallback(err)
     })
 
@@ -1460,10 +1562,14 @@ class GlobularWebpageManager extends HTMLElement {
       });
 
       await Promise.all(promises);
-      callback();
+      if (callback) {
+        callback();
+      }
+
     } catch (err) {
-      console.error(err);
-      errorCallback(err);
+      if (errorCallback) {
+        errorCallback(err);
+      }
     }
   }
 

@@ -392,6 +392,7 @@ export class SearchResultsPage extends HTMLElement {
                         <slot name="list_titles" style="display: flex; flex-wrap: wrap;"> </slot>
                         <slot name="list_audios" style="display: flex; flex-wrap: wrap;"> </slot>
                     </div>
+                    <h2>Webpage search results (<span id="webpage-search-results-count"></span>)</h2>
                     <div id="webpage-search-results"></div>
                     <div id="results-actions">
                         <div id="results-actions-btns" style="">
@@ -478,10 +479,7 @@ export class SearchResultsPage extends HTMLElement {
         // Append it to the results.
         Backend.eventHub.subscribe(`${uuid}_search_hit_event__`, listner_uuid => { },
             evt => {
-
-                console.log("------------------> ????", evt)
-                
-                Backend.eventHub.publish("_display_search_results_", {"file-explorer-id":evt["file-explorer-id"]}, true)
+                Backend.eventHub.publish("_display_search_results_", { "file-explorer-id": evt["file-explorer-id"] }, true)
                 if (this.hits_by_context[evt.context] == null) {
                     this.hits_by_context[evt.context] = []
                 }
@@ -498,14 +496,12 @@ export class SearchResultsPage extends HTMLElement {
                         }
                     } else if (hit.hasBlog()) {
                         return hit.getBlog().getUuid()
-                    } else{
-                        console.log("------------------> ????", hit)
                     }
                 }
 
                 let hit = evt.hit
                 let uuid = getHitUuid(hit)
-  
+
                 if (this.hits[uuid] == undefined) {
 
                     this.hits[uuid] = hit
@@ -593,9 +589,6 @@ export class SearchResultsPage extends HTMLElement {
 
                             })
                         }
-                    } else {
-                        // console.log(hit)
-                        // There is facet for blogpost..? categorie, keywords etc...
                     }
 
                     // Display first results...
@@ -618,93 +611,122 @@ export class SearchResultsPage extends HTMLElement {
 
             }, true)
 
-        // Append the webpage  search result...
-        Backend.eventHub.subscribe("display_webpage_search_result_" + summary.getQuery(), uuid => this.display_webpage_search_result_page = uuid, results => {
-            // Set the search results navigator.
-            let range = document.createRange()
-            let webpageSearchResults = this.shadowRoot.querySelector("#webpage-search-results")
 
-            results.forEach(r => {
-                let doc = JSON.parse(r.getData())
-                let snippet = JSON.parse(r.getSnippet());
-                let uuid = randomUUID()
-                let html = `
-                <div style="display: flex; flex-direction: column; margin: 10px; ">
+        // Append the webpage search result...
+        Backend.eventHub.subscribe(
+            "display_webpage_search_result_" + summary.getQuery(),
+            (uuid) => (this.display_webpage_search_result_page = uuid),
+            (results) => {
+                // Set the search results navigator.
+                let range = document.createRange();
+                let webpageSearchResults = this.shadowRoot.querySelector("#webpage-search-results");
+                webpageSearchResults.innerHTML = "";
+                let webpageSearchResultsCount = this.shadowRoot.querySelector("#webpage-search-results-count");
+                webpageSearchResultsCount.innerHTML = results.length + "";
+
+                results.forEach((r) => {
+                    let doc = JSON.parse(r.getData());
+                    let snippet = JSON.parse(r.getSnippet());
+                    let uuid = crypto.randomUUID(); // Use UUID for unique identification
+                    let html = `
+                <div style="display: flex; flex-direction: column; margin: 10px;">
                     <div style="display: flex; align-items: baseline; margin-left: 2px;">
-                        <span style="font-size: 1.1rem; padding-right: 10px;">${parseFloat(r.getRank() / 1000).toFixed(3)} </span> 
-                        <div id="page-${uuid}-lnk" style="font-size: 1.1rem; font-weight: 400; text-decoration: underline; ">${doc.PageName}</div>
+                        <span style="font-size: 1.1rem; padding-right: 10px;">${parseFloat(r.getRank() / 1000).toFixed(3)}</span> 
+                        <div id="page-${uuid}-lnk" style="font-size: 1.1rem; font-weight: 400; text-decoration: underline; cursor: pointer;">
+                            ${doc.PageName}
+                        </div>
                     </div>
                     <div id="snippets-${uuid}-div" style="padding: 15px; font-size: 1.1rem"></div>
                     <span style="border-bottom: 1px solid var(--palette-action-disabled); width: 80%;"></span>
                 </div>
-                `
+            `;
 
-                if (snippet.Text) {
-                    if (snippet.Text.length > 0) {
-                        webpageSearchResults.appendChild(range.createContextualFragment(html))
-                        let snippetsDiv = webpageSearchResults.querySelector(`#snippets-${uuid}-div`)
-                        snippet.Text.forEach(s => {
-                            let div = document.createElement("div")
-                            div.innerHTML = s
-                            snippetsDiv.appendChild(div)
-                        })
+                    if (snippet.Text && snippet.Text.length > 0) {
+                        webpageSearchResults.appendChild(range.createContextualFragment(html));
+                        let snippetsDiv = webpageSearchResults.querySelector(`#snippets-${uuid}-div`);
+                        snippet.Text.forEach((s) => {
+                            let div = document.createElement("div");
+                            div.innerHTML = s;
+                            snippetsDiv.appendChild(div);
+                        });
+
+          
+                        // Set up the event listener for when the link is clicked
+                        let lnk = webpageSearchResults.querySelector(`#page-${uuid}-lnk`);
+                        lnk.onclick = () => {
+                            let event = new CustomEvent("webpage-search-result-clicked", {
+                                detail: {
+                                    pageId: doc.PageId,
+                                    elementId: doc.Id,
+                                    elementPath: doc.Path,
+                                    query: summary.getQuery(),
+                                },
+                            });
+                            document.dispatchEvent(event);
+                        };
+
+                        // Styling effects for better UX
+                        lnk.onmouseleave = () => {
+                            lnk.style.cursor = "default";
+                            lnk.style.textDecorationColor = "";
+                        };
+
+                        lnk.onmouseover = () => {
+                            lnk.style.cursor = "pointer";
+                            lnk.style.textDecorationColor = "var(--palette-primary-main)";
+                        };
                     }
+                });
+            }
+        );
 
+        // Listen for the search result click event
+        document.addEventListener("webpage-search-result-clicked", (e) => {
+            const { pageId, elementId } = e.detail;
 
-                    let lnk = webpageSearchResults.querySelector(`#page-${uuid}-lnk`)
-                    lnk.onclick = () => {
-                        let pageLnks = document.getElementsByTagName("globular-page-link")
-                        for (var i = 0; i < pageLnks.length; i++) {
-                            if (pageLnks[i].id.startsWith(doc.PageId)) {
-                                pageLnks[i].click()
-                                let e = document.getElementById(doc.Id)
-                                let position = getCoords(e)
-                                window.scrollTo({
-                                    top: position.top - (65 + 10),
-                                    left: 0,
-                                    behavior: 'smooth'
-                                });
+            // Open the page using the correct PageId
+            let pageLinks = document.getElementsByTagName("globular-page-link");
+            for (let i = 0; i < pageLinks.length; i++) {
+                if (pageLinks[i].id.startsWith(pageId)) {
+                    pageLinks[i].click();
 
-                                // I will remove all highligted text..
-                                let highlighted = document.getElementsByClassName("highlighted")
-                                for (var i = 0; i < highlighted.length; i++) {
-                                    if (highlighted[i].lowlight)
-                                        highlighted[i].lowlight();
-                                }
+                    setTimeout(() => {
+                        let targetElement = document.getElementById(elementId);
+                        if (targetElement) {
+                            let position = targetElement.getBoundingClientRect();
 
-                                // So here I will highlight the text...
-                                const regex = new RegExp(summary.getQuery(), 'gi');
+                            // Scroll smoothly to the element
+                            window.scrollTo({
+                                top: position.top + window.scrollY - (65 + 10),
+                                behavior: "smooth",
+                            });
 
-                                let text = e.innerHTML;
-                                text = text.replace(/(<mark class="highlight">|<\/mark>)/gim, '');
+                            // Remove any previously highlighted text
+                            let highlighted = document.getElementsByClassName("highlighted");
+                            Array.from(highlighted).forEach((el) => {
+                                if (el.lowlight) el.lowlight();
+                            });
 
-                                const newText = text.replace(regex, '<mark class="highlight">$&</mark>');
-                                e.innerHTML = newText;
-                                e.classList.add("highlighted")
+                            // Highlight the searched text
+                            const regex = new RegExp(summary.getQuery(), "gi");
+                            let text = targetElement.innerHTML;
+                            text = text.replace(/(<mark class="highlight">|<\/mark>)/gim, ""); // Remove existing highlights
+                            targetElement.innerHTML = text.replace(regex, '<mark class="highlight">$&</mark>');
+                            targetElement.classList.add("highlighted");
 
-                                e.lowlight = () => {
-                                    e.innerHTML = text;
-                                    e.classList.remove("highlighted")
-                                    delete e.lowlight
-                                }
-
-                                return
-                            }
+                            // Function to remove highlight when needed
+                            targetElement.lowlight = () => {
+                                targetElement.innerHTML = text;
+                                targetElement.classList.remove("highlighted");
+                                delete targetElement.lowlight;
+                            };
                         }
-                    }
-
-                    lnk.onmouseleave = () => {
-                        lnk.style.cursor = "default"
-                        lnk.style.textDecorationColor = ""
-                    }
-
-                    lnk.onmouseover = () => {
-                        lnk.style.cursor = "pointer"
-                        lnk.style.textDecorationColor = "var(--palette-primary-main)"
-                    }
+                    }, 500); // Delay to allow page load transition
+                    return;
                 }
-            })
-        })
+            }
+        });
+
     }
 
     connectedCallback() {
@@ -818,6 +840,10 @@ export class SearchResultsPage extends HTMLElement {
                 count++
             }
         }
+
+        // count the number of webpage search results...
+        let webpageSearchResults = this.shadowRoot.querySelector("#webpage-search-results")
+        count += webpageSearchResults.children.length
 
         return count;
     }

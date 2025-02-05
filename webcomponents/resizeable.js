@@ -198,22 +198,46 @@ export function setResizeable(div, onresize, side, zIndex, headerHeight = 0) {
             evt.initEvent('resize', true, false);
             div.dispatchEvent(evt);
 
+            // remove the cover div...
+            var coverDiv = document.body.querySelector("#cover-div")
+            if (coverDiv) {
+                document.body.removeChild(coverDiv)
+            }
+
         }
     }(div))
 
     document.body.addEventListener("pointerdown", function (div) {
         return function (e) {
+
+            let setCoverDiv = () => {
+                // create a cover div on the window to block the mouse events...
+                var coverDiv = document.createElement("div")
+                coverDiv.id = "cover-div"
+                coverDiv.style.position = "fixed"
+                coverDiv.style.top = "0px"
+                coverDiv.style.left = "0px"
+                coverDiv.style.width = "100vw"
+                coverDiv.style.height = "100vh"
+                coverDiv.style.zIndex = 1
+                coverDiv.style.backgroundColor = "rgba(0,0,0,.25)"
+                document.body.appendChild(coverDiv)
+            }
+
             if (div.isOverResizeWidthDiv) {
                 div.isResizeWidth = true;
+                setCoverDiv()
             }
 
             if (div.isOverResizeHeihtgDiv) {
                 div.isResizeHeigth = true;
+                setCoverDiv()
             }
 
             if (div.isOverResizeDiv) {
                 div.isResizeWidth = true;
                 div.isResizeHeigth = true;
+                setCoverDiv()
             }
         }
     }(div))

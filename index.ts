@@ -29,6 +29,7 @@ import "./webcomponents/style.css"
 
 import "tailwindcss/tailwind.css"
 import "highlight.js/styles/github.css"
+import { fireResize } from './Utility'
 
 
 // Wait for the document to be fully loaded
@@ -98,6 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 let pages = document.querySelector("globular-dynamic-page") as any
                 if (pages != undefined) {
                     pages.style.display = ""
+                    fireResize()
                 }
 
                 // Hide the search results
