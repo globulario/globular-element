@@ -392,7 +392,7 @@ export class SearchResultsPage extends HTMLElement {
                         <slot name="list_titles" style="display: flex; flex-wrap: wrap;"> </slot>
                         <slot name="list_audios" style="display: flex; flex-wrap: wrap;"> </slot>
                     </div>
-                    <h2>Webpage search results (<span id="webpage-search-results-count"></span>)</h2>
+                    <h2 style="display: none;">Webpage search results (<span id="webpage-search-results-count"></span>)</h2>
                     <div id="webpage-search-results"></div>
                     <div id="results-actions">
                         <div id="results-actions-btns" style="">
@@ -621,9 +621,7 @@ export class SearchResultsPage extends HTMLElement {
                 let range = document.createRange();
                 let webpageSearchResults = this.shadowRoot.querySelector("#webpage-search-results");
                 webpageSearchResults.innerHTML = "";
-                let webpageSearchResultsCount = this.shadowRoot.querySelector("#webpage-search-results-count");
-                webpageSearchResultsCount.innerHTML = results.length + "";
-
+                let count = 0;
                 results.forEach((r) => {
                     let doc = JSON.parse(r.getData());
                     let snippet = JSON.parse(r.getSnippet());
@@ -641,6 +639,7 @@ export class SearchResultsPage extends HTMLElement {
                 </div>
             `;
 
+                   
                     if (snippet.Text && snippet.Text.length > 0) {
                         webpageSearchResults.appendChild(range.createContextualFragment(html));
                         let snippetsDiv = webpageSearchResults.querySelector(`#snippets-${uuid}-div`);
@@ -650,13 +649,18 @@ export class SearchResultsPage extends HTMLElement {
                             snippetsDiv.appendChild(div);
                         });
 
+                        // Update the search results count
+                        let webpageSearchResultsCount = this.shadowRoot.querySelector("#webpage-search-results-count");
+                        webpageSearchResultsCount.innerHTML = ++count + "";
+                        webpageSearchResultsCount.parentElement.style.display = "block";
+        
           
                         // Set up the event listener for when the link is clicked
                         let lnk = webpageSearchResults.querySelector(`#page-${uuid}-lnk`);
                         lnk.onclick = () => {
                             let event = new CustomEvent("webpage-search-result-clicked", {
                                 detail: {
-                                    pageId: doc.PageId,
+                                    link: doc.Link,
                                     elementId: doc.Id,
                                     elementPath: doc.Path,
                                     query: summary.getQuery(),
@@ -682,12 +686,12 @@ export class SearchResultsPage extends HTMLElement {
 
         // Listen for the search result click event
         document.addEventListener("webpage-search-result-clicked", (e) => {
-            const { pageId, elementId } = e.detail;
+            const { link, elementId } = e.detail;
 
             // Open the page using the correct PageId
             let pageLinks = document.getElementsByTagName("globular-page-link");
             for (let i = 0; i < pageLinks.length; i++) {
-                if (pageLinks[i].id.startsWith(pageId)) {
+                if (pageLinks[i].id.startsWith(link)) {
                     pageLinks[i].click();
 
                     setTimeout(() => {

@@ -514,6 +514,7 @@ export class FileNavigator extends HTMLElement {
                     }
 
 
+                    
                     FileController.readDir(share.getPath(), dir => {
 
                         this._file_explorer_.resume()
@@ -592,7 +593,11 @@ export class FileNavigator extends HTMLElement {
                 globule.rbacService.getSharedResource(rqst, { domain: globule.domain, token: token })
                     .then(rsp => {
                         // Here I need to sync the funtion and init the tree view once all is done...
-                        let callback = () => {
+                        let callback = () => {  
+                            let s = rsp.getSharedresourceList().pop()
+                            console.log(s)
+
+                            /*
                             let s = rsp.getSharedresourceList().pop()
                             if (s != undefined) {
                                 initShared(s, callback)
@@ -608,7 +613,7 @@ export class FileNavigator extends HTMLElement {
                                 if (initCallback)
                                     initCallback(this.shared, this.public_)
 
-                            }
+                            }*/
                         }
 
                         callback(); // call once

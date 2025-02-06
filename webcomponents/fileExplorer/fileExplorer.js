@@ -21,6 +21,7 @@ import { AddPublicDirRequest, CreateDirRequest } from "globular-web-client/file/
 import { FilesUploader } from "./fileUploader.js";
 import { SearchBar } from "../search/searchBar.js";
 import { SearchResults } from "../search/searchResults.js";
+import { SearchDocumentBar } from "./searchDocument.js";
 import { set } from "lodash";
 
 function getElementIndex(element) {
@@ -189,6 +190,7 @@ export class FileExplorer extends HTMLElement {
     <globular-dialog id="${this.id}" class="file-explorer" name="file-explorer" 
         is-moveable="true" is-maximizeable="true" is-resizeable="true" 
         show-icon="true" is-minimizeable="true">
+         <globular-search-document-bar slot="search"></globular-search-document-bar>
         <span id="title-span" slot="title">File Explorer</span>
 
         <!-- Header action buttons -->
@@ -198,6 +200,7 @@ export class FileExplorer extends HTMLElement {
 
         <div id="file-explorer-content" class="card-content no-select">
             <div id="file-navigation-header">
+               
                 <div id="btn-group-0" style="display: flex;">
                     <paper-icon-button id="navigation-back-btn" icon="icons:arrow-back"></paper-icon-button>
                     <paper-icon-button id="navigation-forward-btn" icon="icons:arrow-forward"></paper-icon-button>

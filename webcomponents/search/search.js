@@ -373,7 +373,7 @@ function searchBlogPosts(globule, query, contexts, indexPath, offset, max, callb
  * Search document...
  * @param {*} query 
  */
-function searchWebpageContent(globule, query, contexts, offset, max, callback) {
+export function searchWebpageContent(globule, query, contexts, offset, max, callback) {
 
     let router = document.querySelector("globular-router")
     let application = router.getAttribute("base")

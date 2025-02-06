@@ -232,7 +232,7 @@ class ExternalResourceManager extends HTMLElement {
 
 
     addResourceToDocument(type, url) {
- 
+
         const iframeDoc = this.iframeDoc;
         let element;
         if (type === 'script') {
@@ -248,7 +248,7 @@ class ExternalResourceManager extends HTMLElement {
             // I will add the element to the head of the iframe document if it does not exist
             iframeDoc.head.querySelectorAll(type === 'script' ? 'script' : 'link').forEach((el) => {
                 if ((type === 'script' && el.src === url) || (type === 'link' && el.href === url)) {
-                   return; // The element already exists
+                    return; // The element already exists
                 }
             });
 
@@ -494,7 +494,7 @@ export class GrapesEditor extends HTMLElement {
                         const iframeDoc = this.editor.Canvas.getDocument(); // Access the iframe document directly
                         iframeDoc.body.style.fontFamily = 'Arial, sans-serif';
                         iframeDoc.body.style.overflow = 'hidden';
-                        
+
                         if (this.onload) {
                             this.onload(iframeDoc);
                             resourceManager.iframeDoc = editor.Canvas.getDocument(); // Access the iframe document

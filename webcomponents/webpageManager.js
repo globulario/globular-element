@@ -11,7 +11,8 @@ import { html as beautify } from 'js-beautify';
 import prettify from 'html-prettify'
 import { MoveRequest } from "globular-web-client/file/file_pb";
 import { FileExplorer } from "./fileExplorer/fileExplorer";
-import { DeleteDocumentRequest, IndexJsonObjectRequest } from "globular-web-client/search/search_pb";
+import { DeleteDocumentRequest, IndexJsonObjectRequest, SearchDocumentsRequest } from "globular-web-client/search/search_pb";
+import { result } from "lodash";
 
 
 /**
@@ -192,7 +193,7 @@ class GlobularWebpageManager extends HTMLElement {
       // Listen for the search result click event
       // Listen for the search result click event
       document.addEventListener("webpage-search-result-clicked", (e) => {
-        const { pageId, elementId, elementPath, query } = e.detail;
+        const { link, elementId, query } = e.detail;
 
         let searchResult = document.querySelector("globular-search-results");
         if (searchResult) {
@@ -205,7 +206,7 @@ class GlobularWebpageManager extends HTMLElement {
         }
 
         // Set the page content and ensure the iframe loads
-        this.setPage(pageId, () => {
+        this.setPage(link, () => {
           let iframe = dynamicWebpage.iframe;
           if (!iframe) return;
 
@@ -463,6 +464,7 @@ class GlobularWebpageManager extends HTMLElement {
         deleteButton.addEventListener('click', (evt) => {
           evt.stopPropagation();
           this.deletePage(path, link);
+          this.deletePageIndex(path); // I will delete the page index
         });
 
         deleteButton.slot = 'actions';
@@ -629,7 +631,8 @@ class GlobularWebpageManager extends HTMLElement {
           if (this.hasAttribute('root')) {
 
             this.root = this.getAttribute('root');
-            this.parentElement.setAttribute('link', `/${folder}`);
+
+            this.parentElement.setAttribute('link', '');
             this.parentElement.setAttribute('path', dir.getPath());
 
             await addMenuItems(dir, ``, this.parentElement);
@@ -830,7 +833,7 @@ class GlobularWebpageManager extends HTMLElement {
       let url = getUrl(Backend.globular) + attributesPath;
       url += "?application=" + this.base;
 
-      const response = await fetch(url);
+      const response = await fetch(url, { cache: 'no-store' });
       const json = await response.json();
       return json;
     } catch (err) {
@@ -864,6 +867,8 @@ class GlobularWebpageManager extends HTMLElement {
       // displayMessage(`Attributes saved successfully!`, 3000);
 
       let path = dirPath + "/" + name;
+
+      console.log("path", path);
       let menuItem = document.querySelector(`[path="${path}"]`);
       if (menuItem) {
         let attributes = this.getPage(dirPath).attributes[name];
@@ -904,7 +909,7 @@ class GlobularWebpageManager extends HTMLElement {
   getPageContent(path, callback, errorCallback) {
     // I will try to get the application folder from the address
     async function fetchHTMLContent(url) {
-      const response = await fetch(url);
+      const response = await fetch(url, { cache: 'no-store' });
       const htmlText = await response.text();
       return htmlText; // Returns the HTML content as plain text
     }
@@ -1251,12 +1256,14 @@ class GlobularWebpageManager extends HTMLElement {
                 document.dispatchEvent(pageSelectEvent);
 
                 let name = path.split("/").pop();
+                console.log("---------> save page index: ", path);
                 this.saveSearchIndex(path, name, prettyHtml,
                   () => {
                     /** nothing to do here... */
                   }, err => {
                     displayError(err, 3000);
                   });
+
 
 
               },
@@ -1447,16 +1454,70 @@ class GlobularWebpageManager extends HTMLElement {
     }
   }
 
-  saveHtmlPage(globule, token, path, htmlContent, completeHandler, errorHandler, progressHandler, abortHandler) {
-    // Create a Blob from the HTML content
-    const blob = new Blob([htmlContent], { type: "text/html" });
+  /**
+   * Ensures all textual elements have unique IDs, then saves the HTML page.
+   * @param {Object} globule - The Globular instance.
+   * @param {string} token - The authentication token.
+   * @param {string} path - The file path where the HTML should be saved.
+   * @param {string} htmlContent - The HTML content to be saved.
+   * @param {Function} completeHandler - Callback when the save is complete.
+   * @param {Function} errorHandler - Callback for handling errors.
+   * @param {Function} progressHandler - Callback for tracking progress.
+   * @param {Function} abortHandler - Callback for handling aborts.
+   */
+  async saveHtmlPage(globule, token, path, htmlContent, completeHandler, errorHandler, progressHandler, abortHandler) {
+
+    // Parse the HTML content into a DOM structure
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(htmlContent, "text/html");
+
+    let idCounter = 0;
+
+    /**
+     * Generates a unique ID.
+     */
+    function generateUniqueId() {
+      return `element-${Date.now()}-${idCounter++}`;
+    }
+
+    /**
+     * Ensures all textual elements have an ID.
+     * Textual elements include paragraphs, headings, and spans.
+     */
+    function ensureIdsForTextElements() {
+      const elements = doc.querySelectorAll("p, h1, h2, h3, h4, h5, h6, span, div");
+      elements.forEach(el => {
+        if (!el.id.trim()) {
+          el.id = generateUniqueId();
+        }
+      });
+    }
+
+    ensureIdsForTextElements();
+
+    // Serialize the modified HTML back to a string
+    const updatedHtmlContent = `<!DOCTYPE html>\n${doc.documentElement.outerHTML}`;
+
+    // so here I will genereate a curtom event to update html content...
+    const pageUpdateEvent = new CustomEvent('pageUpdate', {
+      detail: {
+        path: path,
+        content: updatedHtmlContent
+      }
+    });
+
+    // Dispatch the event on the document (or a specific element)
+    document.dispatchEvent(pageUpdateEvent);
+
+    // Create a Blob from the modified HTML content
+    const blob = new Blob([updatedHtmlContent], { type: "text/html" });
     const fileName = path.split("/").pop(); // Extract the file name from the path
     const file = new File([blob], fileName, { type: "text/html" });
 
     // Determine the directory to save the file
     const directoryPath = path.substring(0, path.lastIndexOf("/"));
 
-    // Call the uploadFiles function with the generated file
+    // Call the uploadFiles function with the updated file
     return uploadFiles(
       globule,
       token,
@@ -1469,42 +1530,74 @@ class GlobularWebpageManager extends HTMLElement {
     );
   }
 
-  /**
-   * Remove the search index of a element with a given id.
-   * @param {*} id The element id
-   * @param {*} callback The remove callback
-   * @param {*} errorCallback The error callback
-   */
-  removeSearchIndex(id, callback, errorCallback) {
-    let router = document.querySelector('globular-router')
-    let application = router.getAttribute('base')
-    let rqst = new DeleteDocumentRequest()
-    rqst.setPath(Backend.globular.config.DataPath + "/search/applications/" + application)
-    rqst.setId(id)
+  async deletePageIndex(pageId) {
+    return new Promise((resolve, reject) => {
+        let query = `PageId:${pageId}`;
+        let globule = Backend.globular;
+        console.log("----> delete page index: ", query);
+        try {
+            let router = document.querySelector("globular-router");
+            let application = router.getAttribute("base");
 
-    // So here I will set the address from the address found in the token and not 
-    // the address of the client itself.
-    let token = localStorage.getItem("user_token")
-    let domain = Backend.globular.domain
+            // Create the search request
+            let rqst = new SearchDocumentsRequest();
+            rqst.setPathsList([`${globule.config.DataPath}/search/applications/${application}`]);
+            rqst.setLanguage("en");
+            rqst.setFieldsList(["Id", "PageId"]);
+            rqst.setOffset(0);
+            rqst.setPagesize(10000);
+            rqst.setQuery(query);
 
-    // call persist data
-    Backend.getGlobule(domain).searchService.deleteDocument(rqst,
-      {
-        token: token,
-        application: Model.application,
-        domain: domain
-      }
-    ).then(() => {
-      callback(this)
-    }).catch(err => {
-      errorCallback(err)
-    })
+            let stream = globule.searchService.searchDocuments(rqst, {
+                domain: globule.domain,
+                application: application
+            });
 
-  }
+            let results = [];
+
+            // Process the search stream using event listeners
+            stream.on("data", (rsp) => {
+                results = results.concat(rsp.getResults().getResultsList());
+            });
+
+            stream.on("end", () => {
+                results.forEach(async (result) => {
+                    let id = result.getDocid()
+                    console.log(result, result.getDocid());
+                    
+                    let rqst = new DeleteDocumentRequest();
+                    rqst.setPath(`${globule.config.DataPath}/search/applications/${application}`);
+                    rqst.setId(id);
+
+                    await globule.searchService.deleteDocument(rqst, {
+                        token: localStorage.getItem("user_token"),
+                        domain: globule.domain
+                    });
+                });
+                resolve();
+            });
+
+            stream.on("error", (error) => {
+                resolve(); // Return empty array in case of an error
+            });
+
+        } catch (error) {
+            resolve();
+        }
+    });
+}
+
 
   // Save the search index.
   async saveSearchIndex(pageId, pageName, htmlString, callback, errorCallback) {
     try {
+
+      // Generate a UUID for the page ID
+      const pageUUID = getUuidByString(pageId);
+
+      // First I will delete the existing index, if any
+      await this.deletePageIndex(pageUUID)
+
       // Parse the HTML string into a document
       let parser = new DOMParser();
       let doc = parser.parseFromString(htmlString, "text/html");
@@ -1521,12 +1614,13 @@ class GlobularWebpageManager extends HTMLElement {
 
         if (textContent.length > 0) {
           dataElements.push({
-            Id: element.id || crypto.randomUUID(),
-            PageId: pageId,
+            Id: element.id,
+            PageId: pageUUID,
             PageName: pageName,
             Text: textContent,
             Tag: element.tagName.toLowerCase(),
             Path: currentPath, // Ensuring this is properly defined
+            Link: pageId,
             Attributes: Array.from(element.attributes).reduce((attrs, attr) => {
               attrs[attr.name] = attr.value;
               return attrs;

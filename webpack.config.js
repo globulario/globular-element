@@ -10,7 +10,7 @@ module.exports = (env, argv) => {
     return {
         entry: "./index.ts",
         output: {
-            filename: "bundle.min.js",
+            filename: "bundle.min.[contenthash].js",
             path: path.resolve(__dirname, "dist"),
             publicPath: isProduction ? "/globular-element/" : "/", // Set only in production
         },

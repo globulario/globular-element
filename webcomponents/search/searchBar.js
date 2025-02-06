@@ -233,7 +233,6 @@ export class SearchBar extends HTMLElement {
             searchInput.style.color = "var(--on-surface-color)"
             searchIcon.style.color = "var(--on-surface-color)"
             changeSearchContextBtn.style.color = "var(--on-surface-color)"
-
             contextSearchSelector.style.display = "none"
             Backend.eventHub.publish("_display_search_results_", { "id": this.id }, true)
 
