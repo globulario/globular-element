@@ -1,6 +1,6 @@
 import { DeleteVideoRequest } from "globular-web-client/title/title_pb";
 import { parseDuration } from "../utility";
-import { Backend, displaySuccess, displayError } from "../../backend/backend";
+import { Backend, displaySuccess, displayError, displayMessage } from "../../backend/backend";
 import { VideoInfoEditor } from "./videoInformationsEditor.js";
 import getUuidByString from "uuid-by-string";
 
@@ -353,7 +353,7 @@ export class VideoInfo extends HTMLElement {
 
         // Delete the indexation from the database.
         deleteIndexationBtn.onclick = () => {
-            let toast = displayQuestion(``,
+            let toast = displayMessage(
                 `
             <style>
                

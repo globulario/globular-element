@@ -1,7 +1,6 @@
 import "@polymer/paper-icon-button/paper-icon-button.js";
 import "@polymer/paper-radio-button/paper-radio-button.js";
 import "@polymer/paper-radio-group/paper-radio-group.js";
-import { FileController } from "../backend/file";
 import { Backend, displayMessage, displayError, generatePeerToken, getUrl } from "../backend/backend";
 import getUuidByString from "uuid-by-string";
 import { GrapesEditor } from "./grapeJS/grape";
@@ -13,6 +12,8 @@ import { MoveRequest } from "globular-web-client/file/file_pb";
 import { FileExplorer } from "./fileExplorer/fileExplorer";
 import { DeleteDocumentRequest, IndexJsonObjectRequest, SearchDocumentsRequest } from "globular-web-client/search/search_pb";
 import { result } from "lodash";
+import { randomUUID } from "./utility";
+import { edit } from "brace";
 
 
 /**
@@ -89,6 +90,7 @@ function getErrorPage(url) {
 class GlobularWebpageManager extends HTMLElement {
 
   constructor() {
+    
     super();
     this.attachShadow({ mode: 'open' });
     this.serverDirectory = '';  // The directory on the server where pages are saved
@@ -96,6 +98,7 @@ class GlobularWebpageManager extends HTMLElement {
     this.pages = {};
     this.menuItems = [];
     this.index = ""; // The default page
+    this.editMode = false;
 
     this.shadowRoot.innerHTML = `
       <style>
@@ -133,55 +136,20 @@ class GlobularWebpageManager extends HTMLElement {
       fileExplorer.publishSetDirEvent(this.root)
     });
 
-    let refreshPagesBtn = this.shadowRoot.querySelector('#refresh-pages');
-    refreshPagesBtn.addEventListener('click', () => {
-      this.loadPages(this.root).then(() => {
-        // set back the edit mode
-        let editMode = editModeBtn.getAttribute('edit-mode') == "true";
-        if (!editMode) {
-          createPageBtn.style.display = "none";
-          openRootFolderBtn.style.display = "none";
-          editModeBtn.setAttribute('edit-mode', 'false');
-          editModeBtn.style.color = "";
-          this.menuItems.forEach((menuItem) => {
-            menuItem.removeAttribute('edit-mode');
-          });
-        } else {
-          createPageBtn.style.display = "flex";
-          openRootFolderBtn.style.display = "flex";
-          refreshPagesBtn.style.display = "flex";
-          editModeBtn.setAttribute('edit-mode', 'true');
-          editModeBtn.style.color = "var(--paper-green-500)";
-          this.menuItems.forEach((menuItem) => {
-            menuItem.setAttribute('edit-mode', 'true');
-          });
-        }
-      });
-    });
-
     let editModeBtn = this.shadowRoot.querySelector('#edit-pages')
     editModeBtn.setAttribute('edit-mode', 'false');
-    editModeBtn.addEventListener('click', () => {
 
-      let editMode = editModeBtn.getAttribute('edit-mode') == "true";
-      if (editMode) {
-        createPageBtn.style.display = "none";
-        openRootFolderBtn.style.display = "none";
-        editModeBtn.setAttribute('edit-mode', 'false');
-        editModeBtn.style.color = "";
-        this.menuItems.forEach((menuItem) => {
-          menuItem.removeAttribute('edit-mode');
-        });
-      } else {
-        createPageBtn.style.display = "flex";
-        openRootFolderBtn.style.display = "flex";
-        refreshPagesBtn.style.display = "flex";
-        editModeBtn.setAttribute('edit-mode', 'true');
-        editModeBtn.style.color = "var(--paper-green-500)";
-        this.menuItems.forEach((menuItem) => {
-          menuItem.setAttribute('edit-mode', 'true');
-        });
-      }
+    let refreshPagesBtn = this.shadowRoot.querySelector('#refresh-pages');
+    refreshPagesBtn.addEventListener('click', () => {
+      this.loadPages(this.root)
+    });
+
+
+    editModeBtn.addEventListener('click', () => {
+      let editMode = editModeBtn.getAttribute('edit-mode')=='false'? false: true;
+      editMode = !editMode;
+      editModeBtn.setAttribute('edit-mode', editMode? 'true': 'false');
+      this.setEditMode(editMode);
     });
 
     // backend-ready custom event listener
@@ -385,6 +353,38 @@ class GlobularWebpageManager extends HTMLElement {
       this.index = this.getAttribute('index');
     }
 
+  }
+
+  setEditMode(editMode) {
+
+      // set the edit mode
+      this.editMode = editMode;
+
+      // set back the edit mode
+      let editModeBtn = this.shadowRoot.querySelector('#edit-pages');
+      let createPageBtn = this.shadowRoot.querySelector('#create-page');
+      let openRootFolderBtn = this.shadowRoot.querySelector('#open-root-folder');
+      let refreshPagesBtn = this.shadowRoot.querySelector('#refresh-pages');
+
+     
+      if (!editMode) {
+
+        createPageBtn.style.display = "none";
+        openRootFolderBtn.style.display = "none";
+        editModeBtn.style.color = "";
+        this.menuItems.forEach((menuItem) => {
+          menuItem.removeAttribute('edit-mode');
+        });
+      } else {
+        createPageBtn.style.display = "flex";
+        openRootFolderBtn.style.display = "flex";
+        refreshPagesBtn.style.display = "flex";
+       
+        editModeBtn.style.color = "var(--paper-green-500)";
+        this.menuItems.forEach((menuItem) => {
+          menuItem.setAttribute('edit-mode', 'true');
+        });
+      }
   }
 
   /**
@@ -663,6 +663,9 @@ class GlobularWebpageManager extends HTMLElement {
             this.setPage(lnk); // Set the page content
           }
 
+
+          this.setEditMode(this.editMode);
+
           resolve(); // Resolve the Promise when done
         },
         64,
@@ -846,48 +849,48 @@ class GlobularWebpageManager extends HTMLElement {
 
   async saveAttributes(dirPath, name, attributes) {
 
-    // Get the page attributes
-    let attributes_ = this.getPage(dirPath).attributes || {};
-    attributes_ = attributes_ || {};
+    generatePeerToken(Backend.globular, (token) => {
+      // Get the page attributes
+      let attributes_ = this.getPage(dirPath).attributes || {};
+      attributes_ = attributes_ || {};
 
-    if (name) {
-      if (attributes == null) {
-        delete attributes_[name];
-      } else {
-        attributes_[name] = attributes;
-      }
-    }
-
-    // Save the attributes to the server
-    const blob = new Blob([JSON.stringify(attributes_)], { type: 'application/json' });
-    const file = new File([blob], 'infos.json', { type: 'application/json', lastModified: Date.now() });
-
-    // Upload the file to the server
-    uploadFiles(Backend.globular, localStorage.getItem("user_token"), dirPath, [file], () => {
-      // displayMessage(`Attributes saved successfully!`, 3000);
-
-      let path = dirPath + "/" + name;
-
-      console.log("path", path);
-      let menuItem = document.querySelector(`[path="${path}"]`);
-      if (menuItem) {
-        let attributes = this.getPage(dirPath).attributes[name];
-        if (attributes) {
-          menuItem.setAttribute('icon', attributes.icon);
-          menuItem.setAttribute('title', attributes.title);
-          if (attributes.alias != undefined) {
-            menuItem.setAttribute('alias', attributes.alias);
-            // I will set the path of the page
-            let existingLink = menuItem.getAttribute('link');
-            let newLink = existingLink.substring(0, existingLink.lastIndexOf("/")) + "/" + attributes.alias;
-            menuItem.setAttribute('link', newLink);
-          }
+      if (name) {
+        if (attributes == null) {
+          delete attributes_[name];
+        } else {
+          attributes_[name] = attributes;
         }
       }
-    }, (err) => {
-      displayMessage(`Failed to save attributes: ${err}`, 3000);
-    });
 
+      // Save the attributes to the server
+      const blob = new Blob([JSON.stringify(attributes_)], { type: 'application/json' });
+      const file = new File([blob], 'infos.json', { type: 'application/json', lastModified: Date.now() });
+
+      // Upload the file to the server
+      uploadFiles(Backend.globular, token, dirPath, [file], () => {
+        // displayMessage(`Attributes saved successfully!`, 3000);
+        let path = dirPath + "/" + name;
+
+        console.log("path", path);
+        let menuItem = document.querySelector(`[path="${path}"]`);
+        if (menuItem) {
+          let attributes = this.getPage(dirPath).attributes[name];
+          if (attributes) {
+            menuItem.setAttribute('icon', attributes.icon);
+            menuItem.setAttribute('title', attributes.title);
+            if (attributes.alias != undefined) {
+              menuItem.setAttribute('alias', attributes.alias);
+              // I will set the path of the page
+              let existingLink = menuItem.getAttribute('link');
+              let newLink = existingLink.substring(0, existingLink.lastIndexOf("/")) + "/" + attributes.alias;
+              menuItem.setAttribute('link', newLink);
+            }
+          }
+        }
+      }, (err) => {
+        displayMessage(`Failed to save attributes: ${err}`, 3000);
+      });
+    });
   }
 
   configurePage(name, path) {
@@ -1045,6 +1048,7 @@ class GlobularWebpageManager extends HTMLElement {
 
         // Store the page information
         this.pages[path + "/" + fileName] = { name: fileName, path: path + "/" + fileName, isDirectory: false, file: newFile, link: link, attributes: {} };
+
         this.loadPages(this.root, link);
       },
         (err) => {
@@ -1071,7 +1075,6 @@ class GlobularWebpageManager extends HTMLElement {
           }
         });
         document.dispatchEvent(dirCreateEvent);
-
         this.loadPages(this.root);
 
       }, (err) => {
@@ -1256,7 +1259,6 @@ class GlobularWebpageManager extends HTMLElement {
                 document.dispatchEvent(pageSelectEvent);
 
                 let name = path.split("/").pop();
-                console.log("---------> save page index: ", path);
                 this.saveSearchIndex(path, name, prettyHtml,
                   () => {
                     /** nothing to do here... */
@@ -1532,60 +1534,57 @@ class GlobularWebpageManager extends HTMLElement {
 
   async deletePageIndex(pageId) {
     return new Promise((resolve, reject) => {
-        let query = `PageId:${pageId}`;
-        let globule = Backend.globular;
-        console.log("----> delete page index: ", query);
-        try {
-            let router = document.querySelector("globular-router");
-            let application = router.getAttribute("base");
+      let query = `PageId:${pageId}`;
+      let globule = Backend.globular;
+      try {
+        let router = document.querySelector("globular-router");
+        let application = router.getAttribute("base");
 
-            // Create the search request
-            let rqst = new SearchDocumentsRequest();
-            rqst.setPathsList([`${globule.config.DataPath}/search/applications/${application}`]);
-            rqst.setLanguage("en");
-            rqst.setFieldsList(["Id", "PageId"]);
-            rqst.setOffset(0);
-            rqst.setPagesize(10000);
-            rqst.setQuery(query);
+        // Create the search request
+        let rqst = new SearchDocumentsRequest();
+        rqst.setPathsList([`${globule.config.DataPath}/search/applications/${application}`]);
+        rqst.setLanguage("en");
+        rqst.setFieldsList(["Id", "PageId"]);
+        rqst.setOffset(0);
+        rqst.setPagesize(10000);
+        rqst.setQuery(query);
 
-            let stream = globule.searchService.searchDocuments(rqst, {
-                domain: globule.domain,
-                application: application
+        let stream = globule.searchService.searchDocuments(rqst, {
+          domain: globule.domain,
+          application: application
+        });
+
+        let results = [];
+
+        // Process the search stream using event listeners
+        stream.on("data", (rsp) => {
+          results = results.concat(rsp.getResults().getResultsList());
+        });
+
+        stream.on("end", () => {
+          results.forEach(async (result) => {
+            let id = result.getDocid()
+            let rqst = new DeleteDocumentRequest();
+            rqst.setPath(`${globule.config.DataPath}/search/applications/${application}`);
+            rqst.setId(id);
+
+            await globule.searchService.deleteDocument(rqst, {
+              token: localStorage.getItem("user_token"),
+              domain: globule.domain
             });
+          });
+          resolve();
+        });
 
-            let results = [];
+        stream.on("error", (error) => {
+          resolve(); // Return empty array in case of an error
+        });
 
-            // Process the search stream using event listeners
-            stream.on("data", (rsp) => {
-                results = results.concat(rsp.getResults().getResultsList());
-            });
-
-            stream.on("end", () => {
-                results.forEach(async (result) => {
-                    let id = result.getDocid()
-                    console.log(result, result.getDocid());
-                    
-                    let rqst = new DeleteDocumentRequest();
-                    rqst.setPath(`${globule.config.DataPath}/search/applications/${application}`);
-                    rqst.setId(id);
-
-                    await globule.searchService.deleteDocument(rqst, {
-                        token: localStorage.getItem("user_token"),
-                        domain: globule.domain
-                    });
-                });
-                resolve();
-            });
-
-            stream.on("error", (error) => {
-                resolve(); // Return empty array in case of an error
-            });
-
-        } catch (error) {
-            resolve();
-        }
+      } catch (error) {
+        resolve();
+      }
     });
-}
+  }
 
 
   // Save the search index.
@@ -1607,6 +1606,10 @@ class GlobularWebpageManager extends HTMLElement {
 
         if (["SCRIPT", "STYLE", "NOSCRIPT"].includes(element.tagName)) {
           return dataElements;
+        }
+
+        if (element.id == "") {
+          element.id = "_" + getUuidByString(element.textContent);
         }
 
         let textContent = element.textContent.trim();

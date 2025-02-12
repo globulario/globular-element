@@ -10,7 +10,6 @@ import { add } from 'lodash';
 import { WatchingMenu } from './watching';
 import "./plyr.css"
 
-
 Object.defineProperty(HTMLMediaElement.prototype, 'playing', {
     get: function () {
 
@@ -59,7 +58,7 @@ export function playVideos(videos, name) {
 
                 let url = getUrl(globule)
 
-                if (!files[0].endsWith(".mp4")) {
+                if (!files[0].endsWith(".mp4") && !files[0].endsWith(".m3u8") && !files[0].endsWith(".mkv")) {
                     files[0] += "/playlist.m3u8"
                 }
                 let path = files[0].split("/")
@@ -81,7 +80,6 @@ export function playVideos(videos, name) {
 
     generateVideoPlaylist()
 }
-
 
 /**
  * Function to play a video on the same player.
@@ -792,7 +790,7 @@ export class VideoPlayer extends HTMLElement {
     loadTracks(name) {
 
         // the source is not empty
-        if (this.hasAttribute("src") != null) {
+        if (this.hasAttribute("src")) {
             // here i will read the file and play it...
             fetch(this.getAttribute("src")).then(response => {
                 return response.text()  // or return response.json() if json
@@ -1359,12 +1357,12 @@ export class VideoPlayer extends HTMLElement {
         })
 
         // Only HLS and MP4 are allow by the video player so if is not one it's the other...
-        if (thumbnailPath.lastIndexOf(".mp4") != -1 || thumbnailPath.lastIndexOf(".MP4") != -1) {
+        if (thumbnailPath.lastIndexOf(".mp4") != -1 || thumbnailPath.lastIndexOf(".MP4") != -1 || thumbnailPath.lastIndexOf(".mkv") != -1) {
             thumbnailPath = thumbnailPath.substring(0, thumbnailPath.lastIndexOf("."))
         } else if (!path.endsWith("/playlist.m3u8")) {
             path += "/playlist.m3u8"
         } else {
-            if (!(path.endsWith("/playlist.m3u8") || path.endsWith(".mp4") || path.endsWith(".webm"))) {
+            if (!(path.endsWith("/playlist.m3u8") || path.endsWith(".mp4") || path.endsWith(".webm") || path.endsWith(".mkv"))) {
                 displayError("the file cannot be play by the video player")
                 return
             }

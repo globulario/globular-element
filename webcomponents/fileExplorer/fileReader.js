@@ -62,15 +62,15 @@ export class GlobularFileReader extends HTMLElement {
         this.onclose = null;
         this.titleDiv = this.shadowRoot.querySelector("#title")
 
-        this.closeBtn.onclick = ()=>{
+        this.closeBtn.onclick = () => {
             this.content.style.display = "none"
-            if(this.onclose){
+            if (this.onclose) {
                 this.onclose()
             }
         }
     }
 
-    read(file) {
+    read(file, page = 0) {
 
         this.file = file;
 
@@ -78,20 +78,24 @@ export class GlobularFileReader extends HTMLElement {
         let url = getUrl(file.globule)
 
         file.getPath().split("/").forEach(item => {
-            if(item.trim() != ""){
-            url += "/" + encodeURIComponent(item.trim())
+            if (item.trim() != "") {
+                url += "/" + encodeURIComponent(item.trim())
             }
         })
 
-        // Set the file location.
-        this.frame.src = url
+ 
 
        
-    
         generatePeerToken(file.globule, token => {
-            this.frame.src += "?domain=" + file.globule.domain
-            this.frame.src += "&token=" + token
-            console.log("read url", this.frame.src )
+            url += "?domain=" + file.globule.domain
+            url += "&token=" + token
+            let mime = file.getMime()
+            if (mime == "application/pdf") {
+                this.frame.src = "about:blank"
+                // Set the file location.
+                url += "#page=" + page
+            }
+            this.frame.src = url
         }, error => {
             console.error(error)
         })

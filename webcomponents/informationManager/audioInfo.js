@@ -1,5 +1,6 @@
 import f from "@editorjs/checklist";
 import { AudioInfoEditor } from "./audioInfomationsEditor";
+import { displayMessage } from "../../backend/backend";
 
 function toHoursAndMinutes(totalSeconds) {
     const totalMinutes = Math.floor(totalSeconds / 60);
@@ -121,7 +122,7 @@ export class AudioInfo extends HTMLElement {
         let deleteIndexationBtn = this.shadowRoot.querySelector("#delete-indexation-btn")
         // Delete the indexation from the database.
         deleteIndexationBtn.onclick = () => {
-            let toast = displayQuestion(``, `
+            let toast = displayMessage(`
             <style>
                
             </style>

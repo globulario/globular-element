@@ -23,6 +23,7 @@ import { SearchBar } from "../search/searchBar.js";
 import { SearchResults } from "../search/searchResults.js";
 import { SearchDocumentBar } from "./searchDocument.js";
 import { set } from "lodash";
+import { search } from "jmespath";
 
 function getElementIndex(element) {
     return Array.from(element.parentNode.children).indexOf(element);
@@ -251,6 +252,8 @@ export class FileExplorer extends HTMLElement {
         this.diskSpaceManager = this.shadowRoot.querySelector("globular-disk-space-manager")
         this.diskSpaceManager.globule = this.globule
         this.fileSelectionPanel = this.shadowRoot.querySelector("#file-selection-panel")
+        this.documentSearchBar = this.shadowRoot.querySelector("globular-search-document-bar")
+        this.documentSearchBar._file_explorer_ = this
         this._file_explorer_Content = this.shadowRoot.querySelector("#file-explorer-content")
         this.diskSpaceManager.account = AccountController.account;
 
@@ -403,7 +406,6 @@ export class FileExplorer extends HTMLElement {
         Backend.eventHub.subscribe("__upload_files_event__", (uuid) => { }, (evt) => {
             if (evt.dir.getPath() == this.path) {
                 this.refreshBtn.click()
-                this.fileUploaderBtn.click()
             }
         }, false)
 
@@ -436,6 +438,8 @@ export class FileExplorer extends HTMLElement {
                 this.filesIconView.menu.close()
             }
         }
+
+
 
         // Create a new directory here...
         this.createDirectoryBtn.onclick = (evt) => {
@@ -805,8 +809,8 @@ export class FileExplorer extends HTMLElement {
                 }, false)
         }
 
- 
-   
+
+
         // Reload the content of a dir with the actual dir content description on the server.
         // must be call after file are deleted or renamed
         if (this.listeners[`reload_dir_${this.globule.domain}_event`] == undefined) {
@@ -1042,6 +1046,27 @@ export class FileExplorer extends HTMLElement {
 
     }
 
+    // Search document...
+    setSearchResults = (results) => {
+        let previousResults = this.querySelectorAll("globular-document-search-results")
+        for (var i = 0; i < previousResults.length; i++) {
+            previousResults[i].parentNode.removeChild(previousResults[i])
+        }
+
+        // Create a search result view.
+        results.style.position = "absolute"
+        results.style.zIndex = 1000
+        results.style.top = "0px"
+        results.style.left = "0px"
+        results.style.right = "0px"
+        results.style.bottom = "0px"
+        results.style.backgroundColor = "var(--surface-color)"
+        results.style.color = "var(--on-surface-color)"
+        results.style.overflow = "auto"
+
+        this.appendChild(results)
+    }
+
     /**
      * Create a link(shortcut) to a given file.
      * @param {*} file The file to create the shortcut from
@@ -1070,7 +1095,7 @@ export class FileExplorer extends HTMLElement {
 
     }
 
-    readFile(file) {
+    readFile(file, page=1) {
 
         // hide the content.
         this.filesListView.hide()
@@ -1078,7 +1103,9 @@ export class FileExplorer extends HTMLElement {
         this.fileReader.style.display = "block"
 
         // Display the video only if the path match the video player /applications vs /users
-        this.fileReader.read(file)
+        let mime = file.getMime()
+
+        this.fileReader.read(file, page)
     }
 
     showShareWizard(wizard) {

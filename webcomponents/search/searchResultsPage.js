@@ -639,7 +639,7 @@ export class SearchResultsPage extends HTMLElement {
                 </div>
             `;
 
-                   
+
                     if (snippet.Text && snippet.Text.length > 0) {
                         webpageSearchResults.appendChild(range.createContextualFragment(html));
                         let snippetsDiv = webpageSearchResults.querySelector(`#snippets-${uuid}-div`);
@@ -653,8 +653,8 @@ export class SearchResultsPage extends HTMLElement {
                         let webpageSearchResultsCount = this.shadowRoot.querySelector("#webpage-search-results-count");
                         webpageSearchResultsCount.innerHTML = ++count + "";
                         webpageSearchResultsCount.parentElement.style.display = "block";
-        
-          
+
+
                         // Set up the event listener for when the link is clicked
                         let lnk = webpageSearchResults.querySelector(`#page-${uuid}-lnk`);
                         lnk.onclick = () => {

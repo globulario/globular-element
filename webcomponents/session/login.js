@@ -5,9 +5,68 @@ import '@polymer/paper-input/paper-input.js';
 import '@polymer/paper-card/paper-card.js';
 import '@polymer/paper-button/paper-button.js';
 import '@polymer/paper-checkbox/paper-checkbox.js';
-import { Backend, displayError, displayMessage, generatePeerToken } from '../../backend/backend';
+import { Backend, displayError, displayMessage, generatePeerToken, getUrl } from '../../backend/backend';
 import { AccountController } from '../../backend/account';
 import { NotificationController } from '../../backend/notification';
+
+// Load Google Identity Services (GIS) script
+function loadGoogleScript(callback) {
+    // Load Google Identity Services (GIS) script
+    const gisScript = document.createElement('script');
+    gisScript.src = 'https://accounts.google.com/gsi/client';
+    gisScript.async = true;
+    gisScript.defer = true;
+    document.head.appendChild(gisScript);
+
+    // Load Google Platform Library (for `gapi.auth2`)
+    const gapiScript = document.createElement('script');
+    gapiScript.src = "https://apis.google.com/js/platform.js";
+    gapiScript.async = true;
+    gapiScript.defer = true;
+    gapiScript.onload = () => {
+        gapi.load('auth2', () => {
+            gapi.auth2.init({
+                client_id: Backend.globular.config.OAuth2_ClientId,
+                cookiepolicy: 'single_host_origin',
+                plugin_name: 'globular' //any name can be used
+            }).then(callback);
+        });
+    };
+    document.head.appendChild(gapiScript);
+}
+
+function signInWithGoogle() {
+    const client = google.accounts.oauth2.initCodeClient({
+        client_id: Backend.globular.config.OAuth2_ClientId,
+        scope: "https://www.googleapis.com/auth/userinfo.email profile openid https://www.googleapis.com/auth/userinfo.profile",
+        ux_mode: "popup",  // Use "redirect" if you want a full-page redirect
+        callback: response => {
+            if (response.code) {
+                console.log("Authorization Code:", response.code);
+
+                // Send auth code to backend to exchange for access_token
+                fetch( Backend.globular.config.OAuth2_RedirectUri + "?code=" + response.code)
+                    .then(res => res.json())
+                    .then(data => {
+                        // So here I register the user with the backend, or login if the user already exists
+                        AccountController.register(data.user.sub, data.user.email, "", data.refresh_token, Backend.domain, (account) => {
+                            AccountController.__account__ = account;
+
+                            // dispatch login success event
+                            Backend.eventHub.publish("login_success_", account, true);
+                        }, (err) => {
+                            displayError(err, 3000);
+                        }, Backend.globular,  data.user.given_name, data.user.family_name, data.user.picture);
+                    })
+                    .catch(err => displayError(err, 3000));
+            } else {
+                console.error("Authorization failed:", response);
+            }
+        }
+    });
+
+    client.requestCode();  // Triggers Google OAuth login popup
+}
 
 /**
  * Login box component.
@@ -24,6 +83,7 @@ export class LoginBox extends HTMLElement {
                 @import("style.css");
 
                 paper-card {
+
                     background: var(--surface-color);
                     border-radius: 0.25rem;
                     font-family: Roboto;
@@ -55,7 +115,13 @@ export class LoginBox extends HTMLElement {
                 .card-actions {
                     display: flex;
                     justify-content: flex-end;
+                    align-items: center;
                     font: 13px / 27px Roboto, Arial, sans-serif;
+                }
+                .card-content {
+                    display: flex;
+                    flex-direction: column;
+                    padding: 20px;
                 }
                 paper-input {
                     margin-bottom: 10px;
@@ -67,6 +133,10 @@ export class LoginBox extends HTMLElement {
                     align-self: flex-end;
                     cursor: pointer;
                     text-decoration: underline;
+                }
+
+                #google-login-btn:hover {
+                    cursor: pointer;
                 }
             </style>
 
@@ -81,8 +151,20 @@ export class LoginBox extends HTMLElement {
                     </paper-input>
                     <paper-checkbox id="remember_me">Remember me</paper-checkbox>
                     <span id="reset-password-lnk">Forgot password?</span>
+
                 </div>
                 <div class="card-actions">
+
+                    <div id="google-login-btn" title="login with your google account" class="icon-button" style="display: flex; width: 30px; height: 30px; justify-content: center; align-items: center;position: relative;">
+                        <img class="devsite-product-logo" 
+                            alt="Google Workspace" src="https://fonts.gstatic.com/s/i/productlogos/googleg/v6/24px.svg" 
+                            // srcset=" https://fonts.gstatic.com/s/i/productlogos/googleg/v6/24px.svg" 
+                            // sizes="64px" loading="lazy">
+                        </img>
+                        <paper-ripple class="circle" recenters=""></paper-ripple>
+                    </div>
+
+                    <span style="flex-grow: 1"></span>
                     <paper-button id="login_btn">Login</paper-button>
                     <paper-button id="cancel_btn">Cancel</paper-button>
                 </div>
@@ -90,6 +172,9 @@ export class LoginBox extends HTMLElement {
         `;
 
         this.setupEventListeners();
+        loadGoogleScript(() => {
+
+        });
     }
 
     setupEventListeners() {
@@ -99,6 +184,8 @@ export class LoginBox extends HTMLElement {
         const loginBtn = this.shadowRoot.getElementById("login_btn");
         const rememberMeBtn = this.shadowRoot.getElementById("remember_me");
         const resetPasswordLink = this.shadowRoot.getElementById("reset-password-lnk");
+        const googleLoginBtn = this.shadowRoot.getElementById("google-login-btn");
+
 
         setTimeout(() => userInput.focus(), 100);
 
@@ -107,12 +194,23 @@ export class LoginBox extends HTMLElement {
         passwordInput.onkeyup = (evt) => { if (evt.key === "Enter") loginBtn.click(); };
         resetPasswordLink.onclick = () => this.handleResetPassword(userInput);
 
+
         rememberMeBtn.checked = localStorage.getItem("remember_me") === "true";
         rememberMeBtn.onchange = () => {
             localStorage.setItem("remember_me", rememberMeBtn.checked);
             if (!rememberMeBtn.checked) localStorage.removeItem("remember_me");
         };
+
+        googleLoginBtn.onclick = () => {
+            console.log("Initializing Google Sign-In...");
+
+            // This will trigger the sign-in flow
+            signInWithGoogle();
+            this.parentElement.removeChild(this);
+        };
+
     }
+
 
     handleLogin(evt, userInput, passwordInput) {
         evt.stopPropagation();
@@ -120,6 +218,7 @@ export class LoginBox extends HTMLElement {
         AccountController.authenticate(Backend.globular, userInput.value, passwordInput.value, (token) => {
             // dispatch login success event
             Backend.eventHub.publish("login_success_", AccountController.account, true);
+
 
         }, (err) => {
             displayMessage(err, 3000);
@@ -266,12 +365,12 @@ export class RegisterBox extends HTMLElement {
             return;
         }
 
-        this.removeSelf();
-        Backend.eventHub.publish("register_event_", {
-            userId: userInput.value,
-            email: emailInput.value,
-            password: passwordInput.value,
-        }, true);
+        AccountController.register(userInput.value, emailInput.value, passwordInput.value, retypePasswordInput.value, Backend.domain, (account) => {
+            displayMessage("Account created successfully", 3000);
+            this.removeSelf();
+        }, (err) => {
+            displayError(err, 3000);
+        }, Backend.globular);
     }
 
     removeSelf() {
@@ -290,12 +389,8 @@ export class Login extends HTMLElement {
 
         super();
         this.attachShadow({ mode: 'open' });
-
-
         this.loginBox = new LoginBox();
         this.registerBox = new RegisterBox();
-
-
     }
 
     connectedCallback() {

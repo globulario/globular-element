@@ -354,6 +354,11 @@ export class SessionMenu extends HTMLElement {
         this.account = account;
         accountId = account.getId() + "@" + account.getDomain();
 
+        let name = account.getName();
+        if(account.getFirstname().length > 0 && account.getLastname().length > 0){
+            name = account.getFirstname() + " " + account.getLastname();
+        }
+
         // Set the data url.
         Backend.globular.eventHub.subscribe(`__update_account_${account.getId() + "@" + account.getDomain()}_data_evt__`,
             (uuid) => {
@@ -522,14 +527,15 @@ export class SessionMenu extends HTMLElement {
                         </div>
                         
                         <span id="account-header-id">
-                            ${account.getName()}
+                            
+                            ${name}
                         </span>
                         <span id="account-header-email">
                             ${account.getEmail()}
                         </span>
                       
                     </div>
-                    <globular-session-state account="${account.getId() + "@" + account.getDomain()}" editable state="online"></globular-session-state>
+                    <globular-session-state account="${name + "@" + account.getDomain()}" editable state="online"></globular-session-state>
                 </div>
 
                 <div class="card-actions">

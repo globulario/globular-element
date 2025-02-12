@@ -770,7 +770,7 @@ export class FilesUploader extends HTMLElement {
                     // retreive the row and the progress bar...
                     let id = "_" + getUuidByString(path + "/" + f.name)
                     let row = this.files_upload_table.querySelector("#" + id)
-                    let progress = row.querySelector("paper-progress")
+                   
                     let cancelBtn = row.querySelector("#cancel-btn")
 
                     // Start upload files.
@@ -787,11 +787,11 @@ export class FilesUploader extends HTMLElement {
                             displayMessage("File upload for " + path + "/" + f.name + " fail", 3000)
                         },
                         event => {
-
+                            let progress = row.querySelector("paper-progress")
                             progress.value = (event.loaded / event.total) * 100
                             if (event.loaded == event.total) {
                                 displayMessage("File " + f.name + " was uploaded", 3000)
-                                progress.parentNode.removeChild(progress)
+                                row.parentNode.removeChild(row)
 
                                 // Set the lnk...
                                 row.querySelector("#file-lnk").classList.add("file-path")

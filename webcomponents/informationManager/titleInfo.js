@@ -1,5 +1,5 @@
 import { DeleteTitleRequest, GetTitleFilesRequest, SearchTitlesRequest } from "globular-web-client/title/title_pb";
-import { Backend, displayError, displayMessage, displayQuestion, generatePeerToken } from "../../backend/backend";
+import { Backend, displayError, displayMessage, generatePeerToken } from "../../backend/backend";
 import getUuidByString from "uuid-by-string";
 import { FileController } from "../../backend/file";
 import { VideoPreview } from "../fileExplorer/videoPreview";
@@ -678,7 +678,7 @@ export class TitleInfo extends HTMLElement {
 
         // Delete the indexation from the database.
         deleteIndexationBtn.onclick = () => {
-            let toast = displayQuestion(``, `
+            let toast = displayMessage(`
                <style>
                   
                </style>

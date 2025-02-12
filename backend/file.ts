@@ -148,6 +148,12 @@ export class FileController {
      */
     static getFile(globule: Globular, path: string, thumbnailWith: number, thumbnailHeight: number, callback: (f: FileInfo) => void, errorCallback: (err: string) => void) {
 
+        let key = getUuidByString(globule.domain + "@" + path)
+        let f = FileController._local_files[key]
+        if (f != undefined) {
+            callback(f)
+            return
+        }
 
         let rqst = new GetFileInfoRequest()
         rqst.setPath(path)
@@ -171,6 +177,9 @@ export class FileController {
 
                 (f as any).globule = globule;
 
+                // Here I will keep the file info in the cache...
+                FileController._local_files[key] = f;
+                
                 callback(f);
             })
             .catch(e => {

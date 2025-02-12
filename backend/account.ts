@@ -1,4 +1,4 @@
-import { Account, GetAccountsRqst, GetSessionRequest, GetSessionResponse, Session, SessionState, UpdateSessionRequest, UpdateSessionResponse } from "globular-web-client/resource/resource_pb";
+import { Account, GetAccountsRqst, GetSessionRequest, GetSessionResponse, RegisterAccountRqst, RegisterAccountRsp, Session, SessionState, UpdateSessionRequest, UpdateSessionResponse } from "globular-web-client/resource/resource_pb";
 import { Backend, displayError, displayMessage, generatePeerToken } from "./backend";
 import { Globular } from "globular-web-client";
 import { AuthenticateRqst } from "globular-web-client/authentication/authentication_pb";
@@ -549,9 +549,26 @@ export class AccountController {
             // So here I will set the account session state to onlise.
             let session = (AccountController.account as any).session as Session;
             session.setState(SessionState.OFFLINE);
-            
+
             AccountController.saveSession(() => {
-                displayMessage(`Bye Bye ${AccountController.account.getId()}!`, 3000)
+
+                let name = AccountController.account.getName();
+                if(AccountController.account.getFirstname() != "" && AccountController.account.getLastname() != "") {   
+                    name = AccountController.account.getFirstname() + " " + AccountController.account.getLastname();
+                }
+
+                let html = `
+                <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; background-color: white; padding: 20px; border-radius: 10px;">
+    
+                    <h4>Bye Bye</h4>
+                    <div style="font-size: 1.1rem; font-wegith: 400;"> ${name}!</div>
+                    <img src="${AccountController.account.getProfilepicture()}" style="width: 100px; height: auto; border-radius: 50%;"/>
+                    <p>See you soon...</p>
+                
+                </div>
+                        `;
+
+                displayMessage(html, 3000)
                 Backend.getGlobule(AccountController.account.getDomain()).eventHub.publish(`session_state_${session.getAccountid()}_change_event`, session.serializeBinary(), false)
             }, err => console.log(err))
         }
@@ -566,7 +583,7 @@ export class AccountController {
 
 
         setTimeout(() => {
-            window.location.reload();
+            window.location.href = window.location.origin + window.location.pathname.split('/').slice(0, -1).join('/');
         }, 3000)
     }
 
@@ -655,4 +672,137 @@ export class AccountController {
         });
     }
 
+    /**
+ * Register a new account with the application.
+ * @param name The account name
+ * @param email The account email
+ * @param password The account password
+ */
+    static register(
+        name: string,
+        email: string,
+        password: string,
+        confirmPassord: string,
+        domain: string,
+        onRegister: (account: Account) => void,
+        onError: (err: any) => void,
+        globule: Globular = Backend.globular,
+        firstName: string = "",
+        lastName: string = "",
+        profilePicture: string = "",
+    ) {
+        if (confirmPassord.length == 0) {
+            onError("Please confirm your password")
+            return
+        }
+
+        // Create the register request.
+        let rqst = new RegisterAccountRqst();
+        rqst.setConfirmPassword(confirmPassord);
+
+        let account = new Account();
+
+        account.setEmail(email);
+        account.setName(name);
+        account.setId(name)
+        account.setDomain(domain)
+
+        // Set the user refresh token.
+        if (password.length == 0) {
+            account.setRefreshtoken(confirmPassord); // Confirm password is the refresh token in that case.
+        } else {
+            account.setPassword(password);
+        }
+
+        if (firstName != "") {
+            account.setFirstname(firstName)
+        }
+
+        if (lastName != "") {
+            account.setLastname(lastName)
+        }
+
+        if (profilePicture != "") {
+            account.setProfilepicture(profilePicture)
+        }
+
+        rqst.setAccount(account);
+
+
+
+        if (globule.resourceService == null) {
+            onError("Resource service not found")
+            return
+        }
+
+
+        // Register a new account.
+        globule.resourceService
+            .registerAccount(rqst)
+            .then((rsp: RegisterAccountRsp) => {
+                // Here I will set the token in the localstorage.
+                let token = rsp.getResult();
+                let decoded = jwt(token);
+
+                // here I will save the user token and user_name in the local storage.
+                localStorage.setItem("user_token", token);
+                localStorage.setItem("user_id", (<any>decoded).id);
+                localStorage.setItem("user_name", (<any>decoded).username);
+                localStorage.setItem("token_expired", (<any>decoded).exp);
+                localStorage.setItem("user_email", (<any>decoded).email);
+                localStorage.setItem("user_domain", (<any>decoded).user_domain);
+
+
+                let rqst = new CreateConnectionRqst
+                let connectionId = name.split("@").join("_").split(".").join("_");
+
+                let address = (<any>decoded).address;
+                let domain = (<any>decoded).domain;
+
+                // So here i will open the use database connection.
+                let connection = new Connection
+                connection.setId(connectionId)
+                connection.setUser(connectionId)
+                connection.setPassword(password) // in case of no password set the refresh token as password.
+                connection.setStore(globule.config.BackendStore)
+                connection.setName(name + "_db")
+                connection.setPort(globule.config.BackendPort)
+                connection.setTimeout(60)
+                connection.setHost(address)
+                rqst.setConnection(connection)
+
+                if (globule.persistenceService == null) {
+                    onError("Persistence service not found")
+                    return
+                }
+
+                globule.persistenceService.createConnection(rqst, {
+                    token: token,
+                    domain: domain,
+                    address: address
+                }).then(() => {
+                    // Callback on login.
+                    AccountController.__account__ = account;
+                    AccountController.initSession(account, () => {
+                        AccountController.initData(account, (account) => {
+                            onRegister(account)
+                            Backend.eventHub.publish("login_success_", AccountController.account, true);
+                        }, (err) => {
+                            onRegister(account)
+                            Backend.eventHub.publish("login_success_", AccountController.account, true);
+                            onError(err);
+                        })
+                    }, onError)
+
+                }).catch(err => {
+                    onError(err);
+                })
+
+            })
+            .catch((err: any) => {
+                onError(err);
+            });
+
+        return null;
+    }
 }

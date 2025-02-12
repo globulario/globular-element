@@ -6,7 +6,7 @@ import { TitleController } from "../../backend/title";
 import { AccountController } from "../../backend/account";
 import { ConvertVideoToHlsRequest, ConvertVideoToMpeg4H264Request, CreateVideoPreviewRequest, CreateVideoTimeLineRequest, StartProcessVideoRequest, UploadVideoRequest } from "globular-web-client/media/media_pb.js";
 import { CopyRequest, DeleteDirRequest, GetPublicDirsRequest, MoveRequest, RemovePublicDirRequest, UploadFileRequest } from "globular-web-client/file/file_pb.js";
-import { AssociateFileWithTitleRequest, CreateTitleRequest, CreateVideoRequest } from "globular-web-client/title/title_pb.js";
+import { AssociateFileWithTitleRequest, CreateTitleRequest, CreateVideoRequest, Poster, Publisher, Video, Title} from "globular-web-client/title/title_pb.js";
 import { DownloadTorrentRequest } from "globular-web-client/torrent/torrent_pb.js";
 import { deleteDir, deleteFile, downloadFileHttp, renameFile } from "globular-web-client/api.js";
 import getUuidByString from "uuid-by-string";
@@ -420,7 +420,7 @@ export class FilesView extends HTMLElement {
             for (var fileName in this.selected) {
                 let file = this.selected[fileName]
                 if (file.lnk) {
-                    if (!file.name.endsWith(".lnk")) {
+                    if (!file.getName().endsWith(".lnk")) {
                         file = file.lnk // here I will delete the lnk and not the original file.
                     }
                 }
@@ -432,7 +432,7 @@ export class FilesView extends HTMLElement {
             if (fileList.length == 0) {
                 let file = this.menu.file
                 if (file.lnk) {
-                    if (!file.name.endsWith(".lnk")) {
+                    if (!file.getName().endsWith(".lnk")) {
                         file = file.lnk // here I will delete the lnk and not the original file.
                     }
                 }
@@ -591,9 +591,9 @@ export class FilesView extends HTMLElement {
             if (file.videos || file.titles || file.audios) {
                 Backend.eventHub.publish(`display_media_infos_${this._file_explorer_.id}_event`, file, true)
             } else {
+                console.log("-----------------> 594 ", file)
                 if (file.getMime().startsWith("video") || file.getIsDir()) {
                     TitleController.getFileVideosInfo(file, (videos) => {
-
                         if (videos.length > 0) {
                             Backend.eventHub.publish(`display_media_infos_${this._file_explorer_.id}_event`, file, true)
                             // Remove it from it parent... 
@@ -603,7 +603,8 @@ export class FilesView extends HTMLElement {
                                 this.menu.parentNode.removeChild(this.menu)
                             }
                         }
-                    }, err => {                            // get the title infos...
+                    }, err => {
+                        // get the title infos...
                         TitleController.getFileTitlesInfo(file, (titles) => {
 
                             if (titles.length > 0) {
@@ -613,26 +614,28 @@ export class FilesView extends HTMLElement {
                                     this.menu.close()
                                     this.menu.parentNode.removeChild(this.menu)
                                 }
-                            } else {
-                                // So here no video or title info exist for that file I will propose to the user 
-                                // to create a new video infos...
-                                // Here I will ask the user for confirmation before actually delete the contact informations.
-                                let toast = displayMessage(
-                                    `
+                            }
+                        }, err => {
+
+                            // So here no video or title info exist for that file I will propose to the user 
+                            // to create a new video infos...
+                            // Here I will ask the user for confirmation before actually delete the contact informations.
+                            let toast = displayMessage(
+                                `
                                 <style>
                                     
                                     #yes-no-create-video-info-box{
-                                    display: flex;
-                                    flex-direction: column;
+                                        display: flex;
+                                        flex-direction: column;
                                     }
 
                                     #yes-no-create-video-info-box globular-picture-card{
-                                    padding-bottom: 10px;
+                                        padding-bottom: 10px;
                                     }
 
                                     #yes-no-create-video-info-box div{
-                                    display: flex;
-                                    padding-bottom: 10px;
+                                        display: flex;
+                                        padding-bottom: 10px;
                                     }
                                     paper-button{
                                         font-size: .8rem;
@@ -641,7 +644,7 @@ export class FilesView extends HTMLElement {
                                 </style>
                                 <div id="yes-no-create-video-info-box">
                                     <div style="margin-bottom: 10px;">No informations was associated with that video file</div>
-                                    <img style="max-height: 100px; object-fit: contain; width: 100%;" src="${file.thumbnail}"></img>
+                                    <img style="max-height: 100px; object-fit: contain; width: 100%;" src="${file.getThumbnail()}"></img>
                                     <span style="font-size: .95rem; text-align: center;">${file.getPath().substring(file.getPath().lastIndexOf("/") + 1)}</span>
                                     <div style="margin-top: 10px;">Do you want to create video/movie information? </div>
                                     <div style="justify-content: flex-end;">
@@ -650,20 +653,20 @@ export class FilesView extends HTMLElement {
                                     </div>
                                 </div>
                                 `,
-                                    60 * 1000 // 60 sec...
-                                );
+                                60 * 1000 // 60 sec...
+                            );
 
-                                let yesBtn = document.querySelector("#yes-create-video-info")
-                                let noBtn = document.querySelector("#no-create-video-info")
+                            let yesBtn = document.querySelector("#yes-create-video-info")
+                            let noBtn = document.querySelector("#no-create-video-info")
 
-                                // On yes
-                                yesBtn.onclick = () => {
+                            // On yes
+                            yesBtn.onclick = () => {
 
-                                    // So here I will ask witch type of information the user want's to generate, title, video or audio...
-                                    toast.hideToast();
+                                // So here I will ask witch type of information the user want's to generate, title, video or audio...
+                                toast.hideToast();
 
-                                    let toast_ = displayMessage(
-                                        `
+                                let toast_ = displayMessage(
+                                    `
                                         <style>
 
                                         </style>
@@ -672,7 +675,7 @@ export class FilesView extends HTMLElement {
                                             <div>
                                                 Please select the kind of information to create...
                                             </div>
-                                            <img style="max-height: 100px; object-fit: contain; width: 100%; margin-top: 15px;" src="${file.thumbnail}"></img>
+                                            <img style="max-height: 100px; object-fit: contain; width: 100%; margin-top: 15px;" src="${file.getThumbnail()}"></img>
                                             <paper-radio-group selected="video-option" style="margin-top: 15px;">
                                                 <paper-radio-button id="video-option" name="video-option"><span title="simple video ex. youtube">Video</span></paper-radio-button>
                                                 <paper-radio-button id="title-option" name="title-option"><span title="Movie">Movie or TV Episode/Serie</span></paper-radio-button>
@@ -683,51 +686,51 @@ export class FilesView extends HTMLElement {
                                             </div>
                                         </div>
                                         `
-                                    )
+                                )
 
-                                    let videoOption = toast_.el.querySelector("#video-option")
-                                    let titleOption = toast_.el.querySelector("#title-option")
+                                let videoOption = toast_.toastElement.querySelector("#video-option")
+                                let titleOption = toast_.toastElement.querySelector("#title-option")
 
-                                    let okBtn = toast_.el.querySelector("#yes-create-info")
-                                    let cancelBtn = toast_.el.querySelector("#no-create-info")
+                                let okBtn = toast_.toastElement.querySelector("#yes-create-info")
+                                let cancelBtn = toast_.toastElement.querySelector("#no-create-info")
 
-                                    okBtn.onclick = () => {
-                                        toast_.hideToast();
-                                        if (videoOption.checked) {
-                                            this.createVideoInformations(file, (videoInfo) => {
-                                                file.videos = [videoInfo]
-                                                Backend.eventHub.publish(`display_media_infos_${this._file_explorer_.id}_event`, file, true)
-                                                if (this.menu.parentNode) {
-                                                    // Remove it from it parent... 
-                                                    this.menu.close()
-                                                    this.menu.parentNode.removeChild(this.menu)
-                                                }
+                                okBtn.onclick = () => {
+                                    toast_.hideToast();
+                                    if (videoOption.checked) {
+                                        this.createVideoInformations(file, (videoInfo) => {
+                                            file.videos = [videoInfo]
+                                            Backend.eventHub.publish(`display_media_infos_${this._file_explorer_.id}_event`, file, true)
+                                            if (this.menu.parentNode) {
+                                                // Remove it from it parent... 
+                                                this.menu.close()
+                                                this.menu.parentNode.removeChild(this.menu)
+                                            }
 
-                                            })
-                                        } else if (titleOption.checked) {
-                                            this.createTitleInformations(file, (titleInfo) => {
-                                                file.titles = [titleInfo]
-                                                Backend.eventHub.publish(`display_media_infos_${this._file_explorer_.id}_event`, file, true)
-                                                if (this.menu.parentNode) {
-                                                    // Remove it from it parent... 
-                                                    this.menu.close()
-                                                    this.menu.parentNode.removeChild(this.menu)
-                                                }
-                                            })
-                                        }
+                                        })
+                                    } else if (titleOption.checked) {
+                                        this.createTitleInformations(file, (titleInfo) => {
+                                            file.titles = [titleInfo]
+                                            Backend.eventHub.publish(`display_media_infos_${this._file_explorer_.id}_event`, file, true)
+                                            if (this.menu.parentNode) {
+                                                // Remove it from it parent... 
+                                                this.menu.close()
+                                                this.menu.parentNode.removeChild(this.menu)
+                                            }
+                                        })
                                     }
-
-                                    cancelBtn.onclick = () => {
-                                        toast_.hideToast();
-                                    }
-
                                 }
 
-                                noBtn.onclick = () => {
-                                    toast.hideToast();
+                                cancelBtn.onclick = () => {
+                                    toast_.hideToast();
                                 }
+
                             }
-                        }, err => { displayError(err, 3000); })
+
+                            noBtn.onclick = () => {
+                                toast.hideToast();
+                            }
+
+                        })
                     }, this._file_explorer_.globule)
                 } else if (file.getMime().startsWith("audio")) {
                     getAudioInfo(file, (audios) => {
@@ -1094,11 +1097,11 @@ export class FilesView extends HTMLElement {
         let rqst = new CreateTitleRequest
 
         let titleInfo = new Title
-        let uuid = getUuidByString(file.name)
+        let uuid = getUuidByString(file.getName())
         titleInfo.setId(uuid)
 
         let poster = new Poster
-        poster.setContenturl(file.thumbnail)
+        poster.setContenturl(file.getThumbnail())
         poster.setUrl()
         titleInfo.setPoster(poster)
 
@@ -1167,7 +1170,7 @@ export class FilesView extends HTMLElement {
         // I will create video description.
         let rqst = new CreateVideoRequest
         let videoInfo = new Video
-        let uuid = getUuidByString(file.name) // I will generate a video from the file path...
+        let uuid = getUuidByString(file.getName()) // I will generate a video from the file path...
         videoInfo.setId(uuid)
 
         let date = new Date()
@@ -1179,7 +1182,7 @@ export class FilesView extends HTMLElement {
             publisher.setName(AccountController.account.first_name + " " + AccountController.account.last_name)
 
         let poster = new Poster
-        poster.setContenturl(file.thumbnail)
+        poster.setContenturl(file.getThumbnail())
         poster.setUrl()
         videoInfo.setPoster(poster)
 
@@ -1362,7 +1365,7 @@ export class FilesView extends HTMLElement {
                             // So here I will need to upload the file on remote server...
                             let rqst = new UploadFileRequest
                             rqst.setDest(this.__dir__.getPath())
-                            rqst.setName(file.name)
+                            rqst.setName(file.getName())
                             rqst.setUrl(url)
                             rqst.setDomain(infos.domain)
                             rqst.setIsdir(file.getIsDir())
@@ -1376,7 +1379,7 @@ export class FilesView extends HTMLElement {
                                 }
                                 let toast = displayMessage(`
                                     <div style="display: flex; flex-direction:column;">
-                                        <div>${action} <span style="font-style: italic;">${file.name}</span></div>
+                                        <div>${action} <span style="font-style: italic;">${file.getName()}</span></div>
                                         <div id="info-div"></div>
                                         <div id="progress" style="display: flex; width: 100%;">
                                             <paper-progress style="width: 100%;"  value="0" min="0" max="100"> </paper-progress>

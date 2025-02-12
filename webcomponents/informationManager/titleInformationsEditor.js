@@ -1,8 +1,9 @@
 import getUuidByString from "uuid-by-string";
 import { PersonEditor } from "./personEditor";
-import { displayError, generatePeerToken } from "../../backend/backend";
+import { displayError, displayMessage, generatePeerToken } from "../../backend/backend";
 import { PermissionsManager } from "../permissionManager/permissionManager";
 import { EditableStringList } from "../list";
+import { CreatePersonRequest, CreateTitleRequest, Person, Poster, UpdateTitleMetadataRequest } from "globular-web-client/title/title_pb";
 
 /**
  * The title infos editor.
@@ -521,16 +522,16 @@ export class TitleInfoEditor extends HTMLElement {
                             let rqst = new CreateTitleRequest
                             rqst.setTitle(title)
                             rqst.setIndexpath(indexPath)
-                            globule.titleService.createTitle(rqst, { application: Application.application, domain: Application.domain, token: token })
+                            globule.titleService.createTitle(rqst, {domain: globule.domain, token: token })
                                 .then(rsp => {
-                                    ApplicationView.displayMessage("Title Information are updated", 3000)
+                                    displayMessage("Title Information are updated", 3000)
                                     this.titleInfosDisplay.setTitle(title)
 
                                     // Now I will save the title metadata...
                                     let rqst = new UpdateTitleMetadataRequest
                                     rqst.setTitle(title)
                                     rqst.setIndexpath(indexPath)
-                                    globule.titleService.updateTitleMetadata(rqst, { application: Application.application, domain: Application.domain, token: token })
+                                    globule.titleService.updateTitleMetadata(rqst, {domain: globule.domain, token: token })
                                         .then(rsp => {
                                             console.log("metadata was update!")
                                         })
@@ -676,7 +677,7 @@ export class TitleInfoEditor extends HTMLElement {
                 rqst.setIndexpath(indexPath)
 
                 // save the person witout the title id...
-                globule.titleService.createPerson(rqst, { application: Application.application, domain: Application.domain, token: token })
+                globule.titleService.createPerson(rqst, {domain: globule.domain, token: token })
                     .then(rsp => {
                         if (role == "Acting") {
                             // Now I will remove the person from the title casting...
@@ -710,7 +711,7 @@ export class TitleInfoEditor extends HTMLElement {
                         rqst.setIndexpath(indexPath)
 
                         // update the title.
-                        globule.titleService.createTitle(rqst, { application: Application.application, domain: Application.domain, token: token })
+                        globule.titleService.createTitle(rqst, {domain: globule.domain, token: token })
                             .then(rsp => {
                                 if (role == "Acting") {
                                     this.appendPersonEditor(person, title, "actors")
@@ -800,7 +801,7 @@ export class TitleInfoEditor extends HTMLElement {
 
             // save the person one by one...
             generatePeerToken(globule, token => {
-                globule.titleService.createPerson(rqst, { application: Application.application, domain: Application.domain, token: token })
+                globule.titleService.createPerson(rqst, {domain: globule.domain, token: token })
                     .then(rsp => {
                         if (index < casting.length) {
                             savePerson(index)

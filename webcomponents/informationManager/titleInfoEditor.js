@@ -1,6 +1,9 @@
 import getUuidByString from "uuid-by-string"
 import { EditableStringList } from "../list";
 import { PermissionsManager } from "../permissionManager/permissionManager";
+import { CreatePersonRequest, CreateTitleRequest, Person, Poster, UpdateTitleMetadataRequest } from "globular-web-client/title/title_pb";
+import { PersonEditor } from "./personEditor";
+import { generatePeerToken } from "../../backend/backend";
 
 
 

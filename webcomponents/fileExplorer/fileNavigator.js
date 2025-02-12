@@ -189,8 +189,12 @@ export class FileNavigator extends HTMLElement {
             let name = dir.getPath().split("/").pop();
 
             if (name.startsWith(AccountController.account.getId())) {
-                // display more readable folder name...
-                name = name.replace(AccountController.account.getId(), AccountController.account.getName())
+                if(AccountController.account.getFirstname().length > 0){
+                    name = name.replace(AccountController.account.getId(), AccountController.account.getFirstname() + " " + AccountController.account.getLastname())
+                }else{
+                    // display more readable folder name...
+                    name = name.replace(AccountController.account.getId(), AccountController.account.getName())
+                }
             }
 
             let offset = 10 * level
