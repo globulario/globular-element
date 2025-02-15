@@ -1,6 +1,7 @@
 
 import { ClearAllNotificationsRqst, CreateNotificationRqst, DeleteNotificationRqst, GetNotificationsRqst, GetNotificationsRsp, Notification, NotificationType } from "globular-web-client/resource/resource_pb";
 import { Backend, displayError, generatePeerToken } from "./backend";
+import getUuidByString from "uuid-by-string";
 
 /**
  * The notification controller is used to send and receive notifications.
@@ -48,8 +49,8 @@ export class NotificationController {
      * @param notification The notification can contain html text.
      */
     static sendNotifications(
-        id: string,
         recipient: string,
+        mac: string,
         text: string,
         type: NotificationType,
         callback: () => void,
@@ -57,13 +58,15 @@ export class NotificationController {
     ) {
         // first of all I will save the notificaiton.
         let rqst = new CreateNotificationRqst
-
+        let id = getUuidByString(Date.now().toString())
         // init the notification infos.
         let notification_ = new Notification
         notification_.setId(id)
         notification_.setDate(Math.floor(Date.now() / 1000))
         notification_.setMessage(text)
         notification_.setRecipient(recipient)
+        notification_.setMac(mac)
+
         if (type == NotificationType.APPLICATION_NOTIFICATION) {
             let application = window.localStorage.getItem("application")
             if (application == null) {
@@ -89,15 +92,6 @@ export class NotificationController {
 
             let sender = user_name + "@" + user_domain
             notification_.setSender(sender)
-
-            let mac = Backend.globular.config.Mac
-            if (mac == null) {
-                onError("no mac defined")
-                return
-            }
-
-            notification_.setMac(mac)
-
         }
 
         rqst.setNotification(notification_)

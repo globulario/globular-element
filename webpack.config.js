@@ -20,7 +20,9 @@ module.exports = (env, argv) => {
             extensions: [".ts", ".js"],
             alias: {
                 "@polymer": path.resolve(__dirname, "node_modules/@polymer"),
+                "crypto": path.resolve(__dirname, 'node_modules/crypto-browserify'),
             },
+            
         },
         module: {
             rules: [

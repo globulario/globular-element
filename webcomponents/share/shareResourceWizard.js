@@ -356,19 +356,9 @@ export class ShareResourceWizard extends HTMLElement {
                                         token: token,
                                         domain: contact.domain
                                     }).then((rsp) => {
-
-                                        /** nothing here... */
-                                        let notification_ = new Notification_
-                                        notification_.id = notification.getId()
-                                        notification_.date = date
-                                        notification_.sender = notification.getSender()
-                                        notification_.recipient = notification.getRecipient()
-                                        notification_.text = notification.getMessage()
-                                        notification_.type = 0
-                                        notification_.mac = Backend.getGlobule(contact.domain).config.Mac
-
+                                        
                                         // Send notification...
-                                        Backend.getGlobule(contact.domain).eventHub.publish(contact.id + "@" + contact.domain + "_notification_event", notification_.toString(), false)
+                                        Backend.getGlobule(contact.domain).eventHub.publish(contact.id + "@" + contact.domain + "_notification_event", notification.serializeBinary(), false)
                                     }).catch(err => {
                                         displayError(err, 3000);
                                         console.log(err)

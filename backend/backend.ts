@@ -2,13 +2,13 @@ import * as GlobularWebClient from "globular-web-client";
 import { GeneratePeerTokenRequest, GeneratePeerTokenResponse, RefreshTokenRqst, RefreshTokenRsp } from "globular-web-client/authentication/authentication_pb";
 import { Peer } from "globular-web-client/resource/resource_pb";
 import { getAllPeersInfo } from "globular-web-client/api";
-import  Toastify from "toastify-js";
+import Toastify from "toastify-js";
 import "toastify-js/src/toastify.css"
 import { AccountController } from "./account";
-import { FileInfo } from "globular-web-client/file/file_pb";
 import "@polymer/paper-input/paper-input";
 import '@polymer/paper-radio-button/paper-radio-button.js';
 import '@polymer/paper-radio-group/paper-radio-group.js';
+import jwtDecode from "jwt-decode";
 
 
 // Map to store generated tokens
@@ -149,7 +149,7 @@ export function displaySuccess(msg: string, duration: number = 3000) {
  * @param errorCallback 
  * @returns 
  */
-export function displayAuthentication(msg: string, globule: GlobularWebClient.Globular, successCallback: (token:string) => void, errorCallback: (err: any) => void) {
+export function displayAuthentication(msg: string, globule: GlobularWebClient.Globular, successCallback: (token: string) => void, errorCallback: (err: any) => void) {
 
     // Create a custom DOM element for the notification content
     // Create a container element with an error icon and text
@@ -278,6 +278,7 @@ export function displayAuthentication(msg: string, globule: GlobularWebClient.Gl
 }
 
 let refreshTimeout: any;
+let __scheduleTokenRefresh__ = false;
 
 /**
  * Generates a peer token for the given globule, with automatic token refresh.
@@ -360,6 +361,7 @@ export function generatePeerToken(
 
     // Refresh the token if it's expired
     if (isTokenExpired(token)) {
+       
         // If the authentication service is not available, throw an error
         if (!Backend.globular.authenticationService) {
             errorCallback("The authentication service is not available.");
@@ -384,7 +386,10 @@ export function generatePeerToken(
     }
 
     // Schedule token refresh for the current token
-    scheduleTokenRefresh(token);
+    if(!__scheduleTokenRefresh__){
+        scheduleTokenRefresh(token);
+        __scheduleTokenRefresh__ = true;
+    }
 
     // If the application is running on the same globule and token is available, use it directly
     if (Backend.globular.config.Mac === mac && storedToken) {
@@ -601,7 +606,7 @@ export class Backend {
             Backend.globules.set(Backend.domain, Backend.globular)
             Backend.address = Backend.globular.config.Name + "." + Backend.globular.config.Domain
             Backend.globules.set(Backend.address, Backend.globular)
-            Backend.globules.set( Backend.globular.config.Name , Backend.globular)
+            Backend.globules.set(Backend.globular.config.Name, Backend.globular)
             Backend.globules.set(Backend.globular.config.Protocol + "://" + Backend.address, Backend.globular)
             Backend.globules.set(Backend.address + ":" + Backend.globular.config.PortHttp, Backend.globular)
             Backend.globules.set(Backend.address + ":" + Backend.globular.config.PortHttps, Backend.globular)
@@ -674,8 +679,8 @@ export class Backend {
             // Here I will dispatch a custom dom event to notify that the backend is ready.
             const event = new CustomEvent('backend-ready', { detail: Backend.globular });
             document.dispatchEvent(event);
-            
-           
+
+
 
         }, err => { console.log(err); errorCallback(err); });
 

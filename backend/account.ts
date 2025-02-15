@@ -1,14 +1,85 @@
-import { Account, GetAccountsRqst, GetSessionRequest, GetSessionResponse, RegisterAccountRqst, RegisterAccountRsp, Session, SessionState, UpdateSessionRequest, UpdateSessionResponse } from "globular-web-client/resource/resource_pb";
+import { Account, Contact, GetAccountsRqst, GetSessionRequest, GetSessionResponse,  NotificationType, RegisterAccountRqst, RegisterAccountRsp, Session, SessionState, SetAccountContactRqst, SetAccountContactRsp, UpdateSessionRequest, UpdateSessionResponse } from "globular-web-client/resource/resource_pb";
 import { Backend, displayError, displayMessage, generatePeerToken } from "./backend";
 import { Globular } from "globular-web-client";
 import { AuthenticateRqst } from "globular-web-client/authentication/authentication_pb";
 import jwt from 'jwt-decode';
 import { GetSubjectAvailableSpaceRqst, SubjectType } from "globular-web-client/rbac/rbac_pb";
-import { Connection, FindOneRqst, CreateConnectionRqst } from "globular-web-client/persistence/persistence_pb";
-import { on } from "process";
-import { ApplicationController } from "./applications";
+import { Connection, FindOneRqst, CreateConnectionRqst, ReplaceOneRsp, FindRqst, FindResp } from "globular-web-client/persistence/persistence_pb";
+import { NotificationController } from "./notification";
+import { mergeTypedArrays, uint8arrayToStringMethod} from "../Utility";
 
 export class AccountController {
+
+    constructor() {
+        document.addEventListener("backend_ready", () => {
+
+            // Invite contact event.
+            Backend.eventHub.subscribe(
+                "invite_contact_event_",
+                (uuid: string) => {
+                },
+                (contact: Account) => {
+                    // Here I will try to login the user.
+                    this.onInviteContact(contact);
+                },
+                true, this
+            );
+
+
+            // Revoke contact invitation.
+            Backend.eventHub.subscribe(
+                "revoke_contact_invitation_event_",
+                (uuid: string) => {
+                },
+                (contact: Account) => {
+                    // Here I will try to login the user.
+                    this.onRevokeContactInvitation(contact);
+                },
+                true, this
+            );
+
+
+            // Accept contact invitation
+            Backend.eventHub.subscribe(
+                "accept_contact_invitation_event_",
+                (uuid: string) => {
+                },
+                (contact: Account) => {
+                    // Here I will try to login the user.
+                    this.onAcceptContactInvitation(contact);
+                },
+                true, this
+            );
+
+
+            // Decline contact invitation
+            Backend.eventHub.subscribe(
+                "decline_contact_invitation_event_",
+                (uuid: string) => {
+                },
+                (contact: Account) => {
+                    // Here I will try to login the user.
+                    this.onDeclineContactInvitation(contact);
+                },
+                true, this
+            );
+
+
+            // Decline contact invitation
+            Backend.eventHub.subscribe(
+                "delete_contact_event_",
+                (uuid: string) => {
+                },
+                (contact: Account) => {
+                    // Here I will try to login the user.
+                    this.onDeleteContact(contact);
+                },
+                true, this
+            );
+
+        });
+    }
+
 
     // By default the account will be the guest account.
     private static __account__: Account;
@@ -63,9 +134,8 @@ export class AccountController {
     }
 
 
-
     // Get all account data from a give globule...
-    static getAccounts(globule: Globular, query: string, callback: (accounts: Array<Account>) => void, errorCallback: (err: any) => void) {
+    static getAccounts(query: string, callback: (accounts: Array<Account>) => void, errorCallback: (err: any) => void, globule: Globular = Backend.globular) {
 
         generatePeerToken(globule, token => {
             let rqst = new GetAccountsRqst
@@ -336,7 +406,7 @@ export class AccountController {
       * @param errorCallback Error Callback.
       */
     public static getAccount(id: string, successCallback: (account: Account) => void, errorCallback: (err: any) => void) {
-        if (id.length == 0) {
+        if (id) {
             errorCallback("No account id given to getAccount function!")
             return
         }
@@ -363,8 +433,6 @@ export class AccountController {
         }
 
         generatePeerToken(globule, token => {
-
-
             let rqst = new GetAccountsRqst
             rqst.setQuery(`{"_id":"${id}"}`); // search by name and not id... the id will be retreived.
             rqst.setOptions(`[{"Projection":{"_id":1, "email":1, "name":1, "groups":1, "organizations":1, "roles":1, "domain":1}}]`);
@@ -399,6 +467,12 @@ export class AccountController {
 
                     AccountController.initSession(data, () => {
                         AccountController.initData(data, (account: Account) => {
+                            let user_id = localStorage.getItem("user_id")
+                            if (user_id == account.getId()) {
+                                AccountController.__account__ = account;
+                                let globule = Backend.getGlobule(account.getDomain())
+                                globule.eventHub.publish("login_success_", account, true);
+                            }
                             successCallback(account)
                         }, errorCallback)
 
@@ -539,8 +613,8 @@ export class AccountController {
     }
 
     /**
- * Close the current session explicitelty.
- */
+     * Close the current session explicitelty.
+     */
     static logout() {
 
         // Send local event.
@@ -553,7 +627,7 @@ export class AccountController {
             AccountController.saveSession(() => {
 
                 let name = AccountController.account.getName();
-                if(AccountController.account.getFirstname() != "" && AccountController.account.getLastname() != "") {   
+                if (AccountController.account.getFirstname() != "" && AccountController.account.getLastname() != "") {
                     name = AccountController.account.getFirstname() + " " + AccountController.account.getLastname();
                 }
 
@@ -607,7 +681,6 @@ export class AccountController {
             // save the token in the local storage
             //localStorage.setItem("user_token", token);
             // Here I will set the token in the localstorage.
-
             let decoded = jwt(token);
             let userName = (<any>decoded).username;
             let email = (<any>decoded).email;
@@ -673,11 +746,11 @@ export class AccountController {
     }
 
     /**
- * Register a new account with the application.
- * @param name The account name
- * @param email The account email
- * @param password The account password
- */
+     * Register a new account with the application.
+     * @param name The account name
+     * @param email The account email
+     * @param password The account password
+     */
     static register(
         name: string,
         email: string,
@@ -804,5 +877,285 @@ export class AccountController {
             });
 
         return null;
+    }
+
+    ///////////////////////////////////////////////////////////////////
+    // Contacts.
+    ///////////////////////////////////////////////////////////////////
+
+
+    static getContacts(account: Account, query: string, callback: (contacts: Array<any>) => void, errorCallback: (err: any) => void) {
+
+        // Insert the notification in the db.
+        let rqst = new FindRqst();
+
+        // set connection infos.
+        let id = account.getName().split("@").join("_").split(".").join("_")
+        let db = id + "_db";
+
+        rqst.setId(id);
+        rqst.setDatabase(db);
+        rqst.setCollection("Contacts");
+        rqst.setQuery(query);
+        let globule = Backend.getGlobule(account.getDomain())
+        
+        generatePeerToken(globule, token => {
+            if (globule.persistenceService == null) {
+                errorCallback("Persistence service not found")
+                return
+            }
+
+            let stream = globule.persistenceService.find(rqst, {
+                token: token,
+                domain: globule.domain
+            });
+
+            let data: any;
+            data = [];
+
+            stream.on("data", (rsp: FindResp) => {
+                data = mergeTypedArrays(data, rsp.getData());
+            });
+
+            stream.on("status", (status) => {
+                if (status.code == 0) {
+                    uint8arrayToStringMethod(data, (str: string) => {
+                        callback(JSON.parse(str));
+                    });
+                } else {
+                    console.log("fail to retreive contacts with error: ", status.details)
+                    // In case of error I will return an empty array
+                    callback([]);
+                }
+            });
+        }, errorCallback)
+    }
+
+    public static setContact(from: Account, status_from: string, to: Account, status_to: string, successCallback: () => void, errorCallback: (err: any) => void) {
+
+        // So here I will save the contact invitation into pending contact invitation collection...
+        let rqst = new SetAccountContactRqst
+        rqst.setAccountid(from.getId() + "@" + from.getDomain())
+
+        let contact = new Contact
+        contact.setId(to.getId() + "@" + to.getDomain())
+        contact.setStatus(status_from)
+        contact.setInvitationtime(Math.round(Date.now() / 1000))
+
+        // Test if the ringtone is set for the contact.
+        let ringtone = (to as any).ringtone
+
+        // Set optional values...
+        if (ringtone)
+            contact.setRingtone(ringtone)
+
+        if (to.getProfilepicture())
+            contact.setProfilepicture(to.getProfilepicture())
+
+        rqst.setContact(contact)
+        let globule = Backend.getGlobule(from.getDomain())
+
+
+        generatePeerToken(globule, token => {
+
+            if (globule.resourceService == null) {
+                errorCallback("Resource service not found")
+                return
+            }
+
+            globule.resourceService.setAccountContact(rqst, {
+                token: token,
+                domain: globule.domain
+            })
+                .then((rsp: SetAccountContactRsp) => {
+
+                    let sentInvitation = `{"_id":"${to.getId() + "@" + to.getDomain()}", "invitationTime":${Math.floor(Date.now() / 1000)}, "status":"${status_from}"}`
+
+                    Backend.getGlobule(from.getDomain()).eventHub.publish(status_from + "_" + from.getId() + "@" + from.getDomain() + "_evt", sentInvitation, false)
+                    if (from.getDomain() != to.getDomain()) {
+                        Backend.getGlobule(to.getDomain()).eventHub.publish(status_from + "_" + from.getId() + "@" + from.getDomain() + "_evt", sentInvitation, false)
+                    }
+
+                    // Here I will return the value with it
+                    let rqst = new SetAccountContactRqst
+                    rqst.setAccountid(to.getId() + "@" + to.getDomain())
+
+                    let contact = new Contact
+                    contact.setId(from.getId() + "@" + from.getDomain())
+                    contact.setStatus(status_to)
+                    contact.setInvitationtime(Math.round(Date.now() / 1000))
+                    rqst.setContact(contact)
+
+                    // So here I will save the contact invitation into pending contact invitation collection...
+                    let resourceServiceTo = Backend.getGlobule(to.getDomain()).resourceService
+                    if (resourceServiceTo == null) {
+                        errorCallback("Resource service not found")
+                        return
+                    }
+
+                    // call persist data
+                    resourceServiceTo
+                        .setAccountContact(rqst, {
+                            token: token,
+                            domain: Backend.domain
+                        })
+                        .then((rsp: ReplaceOneRsp) => {
+                            // Here I will return the value with it
+                            let receivedInvitation = `{"_id":"${from.getId() + "@" + from.getDomain()}", "invitationTime":${Math.floor(Date.now() / 1000)}, "status":"${status_to}"}`
+                            Backend.getGlobule(from.getDomain()).eventHub.publish(status_to + "_" + to.getId() + "@" + to.getDomain() + "_evt", receivedInvitation, false)
+                            if (from.getDomain() != to.getDomain()) {
+                                Backend.getGlobule(to.getDomain()).eventHub.publish(status_to + "_" + to.getId() + "@" + to.getDomain() + "_evt", receivedInvitation, false)
+                            }
+                            successCallback();
+                        })
+                        .catch(errorCallback);
+                }).catch(errorCallback);
+        }, errorCallback)
+
+
+    }
+
+    // Invite a new contact.
+    onInviteContact(contact: Account) {
+        // Create the user notification
+        let mac = Backend.getGlobule(contact.getDomain()).config.Mac
+        let recipient = contact.getId() + "@" + contact.getDomain()
+        let message = `<div style="display: flex; flex-direction: column;">
+        <p>
+            ${AccountController.account.getName()} want to add you as contact.<br>Click the <iron-icon id="Contacts_icon" icon="social:people"></iron-icon> button to accept or decline the invitation.
+        </p>
+        </div>`
+
+        // Send the notification.
+        NotificationController.sendNotifications(recipient, mac, message, NotificationType.USER_NOTIFICATION,
+            () => {
+                AccountController.setContact(AccountController.account, "sent", contact, "received",
+                    () => {
+                        // this.displayMessage(, 3000)
+                    }, (err: any) => {
+                        displayError(err, 3000)
+                    })
+            },
+            (err: any) => {
+                displayError(err, 3000);
+            }
+        );
+    }
+
+    // Accept contact.
+    onAcceptContactInvitation(contact: Account) {
+        // Create a user notification.
+        let mac = Backend.getGlobule(contact.getDomain()).config.Mac
+        let recipient = contact.getId() + "@" + contact.getDomain()
+
+        let message = `<div style="display: flex; flex-direction: column;">
+            <p>
+            ${AccountController.account.getEmail()} accept you as contact.
+            <br>Click the <iron-icon id="Contacts_icon" icon="social:people"></iron-icon> button to get more infos.
+            </p>
+        </div>`
+
+
+        // Send the notification.
+        NotificationController.sendNotifications(recipient, mac, message, NotificationType.USER_NOTIFICATION,
+            () => {
+                AccountController.setContact(AccountController.account, "accepted", contact, "accepted",
+                    () => {
+                        // this.displayMessage(, 3000)
+                    }, (err: any) => {
+                        displayError(err, 3000)
+                    })
+            },
+            (err: any) => {
+                displayError(err, 3000);
+            }
+        );
+    }
+
+    // Decline contact invitation.
+    onDeclineContactInvitation(contact: Account) {
+
+        let mac = Backend.getGlobule(contact.getDomain()).config.Mac
+        let recipient = contact.getId() + "@" + contact.getDomain()
+        let message = `
+        <div style="display: flex; flex-direction: column;">
+          <p>
+            Unfortunately ${AccountController.account.getEmail()} declined your invitation.
+            <br>Click the <iron-icon id="Contacts_icon" icon="social:people"></iron-icon> button to get more infos.
+          </p>
+        </div>`
+
+        // Send the notification.
+        NotificationController.sendNotifications(recipient, mac, message, NotificationType.USER_NOTIFICATION,
+            () => {
+                AccountController.setContact(AccountController.account, "declined", contact, "declined",
+                    () => {
+                        // this.displayMessage(, 3000)
+                    }, (err: any) => {
+                        displayError(err, 3000)
+                    })
+            },
+            (err: any) => {
+                displayError(err, 3000);
+            }
+        );
+    }
+
+    // Revoke contact invitation.
+    onRevokeContactInvitation(contact: Account) {
+
+        let mac = Backend.getGlobule(contact.getDomain()).config.Mac
+        let recipient = contact.getId() + "@" + contact.getDomain()
+        let message = `
+        <div style="display: flex; flex-direction: column;">
+          <p>
+            Unfortunately ${AccountController.account.getEmail()} revoke the invitation.
+            <br>Click the <iron-icon id="Contacts_icon" icon="social:people"></iron-icon> button to get more infos.
+          </p>
+        </div>`
+
+        // Send the notification.
+        NotificationController.sendNotifications( recipient, mac, message, NotificationType.USER_NOTIFICATION,
+            () => {
+                AccountController.setContact(AccountController.account, "revoked", contact, "revoked",
+                    () => {
+                        // this.displayMessage(, 3000)
+                    }, (err: any) => {
+                        displayError(err, 3000)
+                    })
+            },
+            (err: any) => {
+                displayError(err, 3000);
+            }
+        );
+    }
+
+    // Delete contact invitation.
+    onDeleteContact(contact: Account) {
+
+        let mac = Backend.getGlobule(contact.getDomain()).config.Mac
+        let recipient = contact.getId() + "@" + contact.getDomain()
+        let message = `
+      <div style="display: flex; flex-direction: column;">
+        <p>
+          You and ${AccountController.account.getEmail()} are no more in contact.
+          <br>Click the <iron-icon id="Contacts_icon" icon="social:people"></iron-icon> button to get more infos.
+        </p>
+      </div>`
+
+        // Send the notification.
+        NotificationController.sendNotifications(recipient, mac, message, NotificationType.USER_NOTIFICATION,
+            () => {
+                AccountController.setContact(AccountController.account, "deleted", contact, "deleted",
+                    () => {
+                        // this.displayMessage(, 3000)
+                    }, (err: any) => {
+                        displayError(err, 3000)
+                    })
+            },
+            (err: any) => {
+                displayError(err, 3000);
+            }
+        );
     }
 }

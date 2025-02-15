@@ -1085,7 +1085,7 @@ export class FileExplorer extends HTMLElement {
             let rqst = new CreateLnkRequest
             rqst.setName(fileName + ".lnk")
             rqst.setPath(dest)
-            rqst.setLnk(file.toString())
+            rqst.setLnk(file.serializeBinary())
 
             globule.fileService.createLnk(rqst, { domain: globule.domain, token: token }).then(() => {
                 globule.eventHub.publish("reload_dir_event", dest, false);

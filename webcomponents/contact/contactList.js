@@ -230,9 +230,9 @@ export class ContactList extends HTMLElement {
             })
         }, true)
 
-        Model.eventHub.subscribe("stop_peer_evt_", uuid => { },
+        Backend.eventHub.subscribe("stop_peer_evt_", uuid => { },
             peer => {
-                Model.eventHub.publish("remove_contact_card_" + peer.getDomain() + "." + peer.getDomain() + "_evt_", {}, true)
+                Backend.eventHub.publish("remove_contact_card_" + peer.getDomain() + "." + peer.getDomain() + "_evt_", {}, true)
             }, true)
 
         // So here I will get the list of sent invitation for the account.
@@ -286,7 +286,7 @@ export class ContactList extends HTMLElement {
         this.badge.style.display = "block"
 
         // if the globule is disconnected I will remove the contact...
-        Model.eventHub.subscribe("remove_contact_card_" + contact.getDomain() + "_evt_", uuid => { }, evt => {
+        Backend.eventHub.subscribe("remove_contact_card_" + contact.getDomain() + "_evt_", uuid => { }, evt => {
             if (card.parentNode) {
                 card.parentNode.removeChild(card)
             }
@@ -453,25 +453,15 @@ export class ContactList extends HTMLElement {
                                         token: token,
                                         domain: Backend.domain
                                     }).then((rsp) => {
-                                        /** nothing here... */
-                                        // use the ts class to send notification...
-                                        let notification_ = new Notification()
-                                        notification_.id = notification.getId()
-                                        notification_.date = date
-                                        notification_.sender = notification.getSender()
-                                        notification_.recipient = notification.getRecipient()
-                                        notification_.text = notification.getMessage()
-                                        notification_.type = 0
-
                                         // Send notification...
-                                        Backend.getGlobule(contact.getDomain()).eventHub.publish(contact.getId() + "@" + contact.getDomain() + "_notification_event", notification_.toString(), false)
+                                        Backend.getGlobule(contact.getDomain()).eventHub.publish(contact.getId() + "@" + contact.getDomain() + "_notification_event", notification.serializeBinary(), false)
                                     }).catch(err => {
                                         ApplicationView.displayMessage(err, 3000);
                                         console.log(err)
                                     })
 
 
-                                    Model.eventHub.publish("calling_" + contact.getId() + "@" + contact.getDomain() + "_evt", call, true)
+                                    Backend.eventHub.publish("calling_" + contact.getId() + "@" + contact.getDomain() + "_evt", call, true)
                                 })
 
                             }, false)
@@ -483,15 +473,15 @@ export class ContactList extends HTMLElement {
 
 
 
-                    }, err => ApplicationView.displayMessage(err, 3000))
+                    }, err => displayError(err, 3000))
 
-                }, err => ApplicationView.displayMessage(err, 3000))
+                }, err => displayError(err, 3000))
 
             if (contact.getDomain() != AccountController.account.getDomain()) {
                 let globule = Backend.getGlobule(contact.getDomain())
                 generatePeerToken(globule, token => {
                     globule.resourceService.setCall(rqst, { domain: globule.domain, token: token })
-                }, err => ApplicationView.displayMessage(err, 3000))
+                }, err => displayError(err, 3000))
             }
         })
 

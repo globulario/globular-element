@@ -442,6 +442,7 @@ export class Login extends HTMLElement {
                     localStorage.setItem("user_token", token);
                 }, (err) => {
                     console.error(err);
+                    displayError(err, 3000);
                     localStorage.removeItem("user_token");
                     localStorage.removeItem("user_id");
                     localStorage.removeItem("user_email");

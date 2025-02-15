@@ -1,3 +1,6 @@
+import { AccountController } from "../../backend/account";
+import { Backend, displayMessage } from "../../backend/backend";
+
 /**
  * Display the list of sent contact invitation. If the invitation was not pending it will be removed.
  */
@@ -15,17 +18,17 @@ export class SentContactInvitations extends HTMLElement {
         this.account = account;
         this.onRevokeContact = onRevokeContact;
 
-        Model.getGlobule(Application.account.domain).eventHub.subscribe("sent_" + account.id + "@" + account.domain + "_evt",
+        Backend.getGlobule(AccountController.account.domain).eventHub.subscribe("sent_" + account.getId() + "@" + account.getDomain() + "_evt",
             (uuid) => { },
             (evt) => {
                 // So here I will append the account into the list.
                 let invitation = JSON.parse(evt)
-                Account.getAccount(invitation._id,
+                AccountController.getAccount(invitation._id,
                     (contact) => {
                         this.appendContact(contact)
                     },
                     err => {
-                        ApplicationView.displayMessage(err, 3000)
+                        displayMessage(err, 3000)
                     })
             },
             false, this)
@@ -51,13 +54,13 @@ export class SentContactInvitations extends HTMLElement {
 
         `
 
-        let globule = Model.getGlobule(account.domain)
+        let globule = Backend.getGlobule(account.domain)
 
         // So here I will get the list of sent invitation for the account.
-        Account.getContacts(this.account, `{"status":"sent"}`, (invitations) => {
+        AccountController.getContacts(this.account, `{"status":"sent"}`, (invitations) => {
 
             for (var i = 0; i < invitations.length; i++) {
-                Account.getAccount(invitations[i]._id,
+                AccountController.getAccount(invitations[i]._id,
                     (contact) => {
                         this.appendContact(contact)
                     },
@@ -71,11 +74,11 @@ export class SentContactInvitations extends HTMLElement {
         })
 
 
-        globule.eventHub.subscribe("revoked_" + account.id + "@" + account.domain + "_evt",
+        globule.eventHub.subscribe("revoked_" + account.getId() + "@" + account.getDomain() + "_evt",
             (uuid) => { },
             (evt) => {
                 let invitation = JSON.parse(evt);
-                Account.getAccount(invitation._id,
+                AccountController.getAccount(invitation._id,
                     (contact) => {
                         this.removeContact(contact);
                     },
@@ -86,11 +89,11 @@ export class SentContactInvitations extends HTMLElement {
             },
             false, this)
 
-        globule.eventHub.subscribe("declined_" + account.id + "@" + account.domain + "_evt",
+        globule.eventHub.subscribe("declined_" + account.getId() + "@" + account.getDomain() + "_evt",
             (uuid) => { },
             (evt) => {
                 let invitation = JSON.parse(evt);
-                Account.getAccount(invitation._id,
+                AccountController.getAccount(invitation._id,
                     (contact) => {
                         this.removeContact(contact);
                     },
@@ -101,11 +104,11 @@ export class SentContactInvitations extends HTMLElement {
             },
             false, this)
 
-        globule.eventHub.subscribe("accepted_" + account.id + "@" + account.domain + "_evt",
+        globule.eventHub.subscribe("accepted_" + account.getId() + "@" + account.getDomain() + "_evt",
             (uuid) => { },
             (evt) => {
                 let invitation = JSON.parse(evt);
-                Account.getAccount(invitation._id,
+                AccountController.getAccount(invitation._id,
                     (contact) => {
                         this.removeContact(contact);
                     },
@@ -125,7 +128,7 @@ export class SentContactInvitations extends HTMLElement {
 
     appendContact(contact) {
 
-        let id = "_" + getUuidByString(contact.id + "@" + contact.domain + "_pending_invitation")
+        let id = "_" + getUuidByString(contact.getId() + "@" + contact.getId() + "_pending_invitation")
         if (this.querySelector("#" + id) != undefined) {
             return;
         }
@@ -142,7 +145,7 @@ export class SentContactInvitations extends HTMLElement {
 
     removeContact(contact) {
         // simply remove it.
-        let id = "_" + getUuidByString(contact.id + "@" + contact.domain + "_pending_invitation")
+        let id = "_" + getUuidByString(contact.getId() + "@" + contact.getDomain() + "_pending_invitation")
         let card = this.querySelector("#" + id)
         if (card != undefined) {
             this.removeChild(card)

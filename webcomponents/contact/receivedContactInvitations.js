@@ -1,3 +1,4 @@
+import { AccountController } from "../../backend/account";
 import { Backend } from "../../backend/backend";
 
 /**
@@ -22,11 +23,11 @@ export class ReceivedContactInvitations extends HTMLElement {
 
         let globule = Backend.getGlobule(domain) // connect to the local event hub...
 
-        globule.eventHub.subscribe("received_" + account.id + "@" + account.domain + "_evt",
+        globule.eventHub.subscribe("received_" + account.getId() + "@" + account.getDomain() + "_evt",
             (uuid) => { },
             (evt) => {
                 let invitation = JSON.parse(evt);
-                Account.getAccount(invitation._id,
+                AccountController.getAccount(invitation._id,
                     (contact) => {
                         this.appendContact(contact);
                     },
@@ -37,7 +38,7 @@ export class ReceivedContactInvitations extends HTMLElement {
             },
             false, this)
 
-        globule.eventHub.subscribe("revoked_" + account.id + "@" + account.domain + "_evt",
+        globule.eventHub.subscribe("revoked_" + account.getId() + "@" + account.getId() + "_evt",
             (uuid) => { },
             (evt) => {
                 let invitation = JSON.parse(evt);
@@ -52,11 +53,11 @@ export class ReceivedContactInvitations extends HTMLElement {
             },
             false, this)
 
-        globule.eventHub.subscribe("declined_" + account.id + "@" + account.domain + "_evt",
+        globule.eventHub.subscribe("declined_" + account.getId() + "@" + account.getDomain() + "_evt",
             (uuid) => { },
             (evt) => {
                 let invitation = JSON.parse(evt);
-                Account.getAccount(invitation._id,
+                AccountController.getAccount(invitation._id,
                     (contact) => {
                         this.removeContact(contact);
                     },
@@ -67,11 +68,11 @@ export class ReceivedContactInvitations extends HTMLElement {
             },
             false, this)
 
-        globule.eventHub.subscribe("accepted_" + account.id + "@" + account.domain + "_evt",
+        globule.eventHub.subscribe("accepted_" + account.getId() + "@" + account.getDomain() + "_evt",
             (uuid) => { },
             (evt) => {
                 let invitation = JSON.parse(evt);
-                Account.getAccount(invitation._id,
+                AccountController.getAccount(invitation._id,
                     (contact) => {
                         this.removeContact(contact);
                     },
@@ -101,7 +102,7 @@ export class ReceivedContactInvitations extends HTMLElement {
         </div>
         `
         // So here I will get the list of sent invitation for the account.
-        Account.getContacts(this.account, `{"status":"received"}`, (invitations) => {
+        AccountController.getContacts(this.account, `{"status":"received"}`, (invitations) => {
 
             for (var i = 0; i < invitations.length; i++) {
                 Account.getAccount(invitations[i]._id,
@@ -125,7 +126,7 @@ export class ReceivedContactInvitations extends HTMLElement {
 
     appendContact(contact) {
 
-        let id = "_" + getUuidByString(contact.id + "@" + contact.domain + "_pending_invitation")
+        let id = "_" + getUuidByString(contact.getId() + "@" + contact.getDomain() + "_pending_invitation")
         if (this.querySelector("#" + id) != undefined) {
             return;
         }
@@ -140,7 +141,7 @@ export class ReceivedContactInvitations extends HTMLElement {
 
     removeContact(contact) {
         // simply remove it.
-        let id = "_" + getUuidByString(contact.id + "@" + contact.domain + "_pending_invitation")
+        let id = "_" + getUuidByString(contact.getId() + "@" + contact.getDomain() + "_pending_invitation")
         let card = this.querySelector("#" + id)
         if (card != undefined) {
             this.removeChild(card)

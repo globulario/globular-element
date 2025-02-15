@@ -348,7 +348,7 @@ export class PermissionPanel extends HTMLElement {
 
         // Here I will set the content of the collapse panel.
         // Now the account list.
-        AccountController.getAccounts(Backend.globule, "{}",
+        AccountController.getAccounts("{}",
             accounts => {
 
                 // I will get the account object whit the given id.

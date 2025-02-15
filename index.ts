@@ -22,6 +22,7 @@ import "./webcomponents/session/session"
 import { Backend } from './backend/backend';
 import './webcomponents/router';
 import './webcomponents/dynamicWebpage';
+import './webcomponents/contact/contacts';
 
 // Import the styles
 import './styles.css';
