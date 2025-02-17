@@ -8,78 +8,77 @@ import { Connection, FindOneRqst, CreateConnectionRqst, ReplaceOneRsp, FindRqst,
 import { NotificationController } from "./notification";
 import { mergeTypedArrays, uint8arrayToStringMethod} from "../Utility";
 
+
+document.addEventListener("backend-ready", () => {
+
+    // Invite contact event.
+    Backend.eventHub.subscribe(
+        "invite_contact_event_",
+        (uuid: string) => {
+        },
+        (contact: Account) => {
+            // Here I will try to login the user.
+            AccountController.onInviteContact(contact);
+        },
+        true, this
+    );
+
+
+    // Revoke contact invitation.
+    Backend.eventHub.subscribe(
+        "revoke_contact_invitation_event_",
+        (uuid: string) => {
+        },
+        (contact: Account) => {
+            // Here I will try to login the user.
+            AccountController.onRevokeContactInvitation(contact);
+        },
+        true, this
+    );
+
+
+    // Accept contact invitation
+    Backend.eventHub.subscribe(
+        "accept_contact_invitation_event_",
+        (uuid: string) => {
+        },
+        (contact: Account) => {
+            // Here I will try to login the user.
+            AccountController.onAcceptContactInvitation(contact);
+        },
+        true, this
+    );
+
+
+    // Decline contact invitation
+    Backend.eventHub.subscribe(
+        "decline_contact_invitation_event_",
+        (uuid: string) => {
+        },
+        (contact: Account) => {
+            // Here I will try to login the user.
+            AccountController.onDeclineContactInvitation(contact);
+        },
+        true, this
+    );
+
+
+    // Decline contact invitation
+    Backend.eventHub.subscribe(
+        "delete_contact_event_",
+        (uuid: string) => {
+        },
+        (contact: Account) => {
+            // Here I will try to login the user.
+            AccountController.onDeleteContact(contact);
+        },
+        true, this
+    );
+
+});
+
+
 export class AccountController {
-
-    constructor() {
-        document.addEventListener("backend_ready", () => {
-
-            // Invite contact event.
-            Backend.eventHub.subscribe(
-                "invite_contact_event_",
-                (uuid: string) => {
-                },
-                (contact: Account) => {
-                    // Here I will try to login the user.
-                    this.onInviteContact(contact);
-                },
-                true, this
-            );
-
-
-            // Revoke contact invitation.
-            Backend.eventHub.subscribe(
-                "revoke_contact_invitation_event_",
-                (uuid: string) => {
-                },
-                (contact: Account) => {
-                    // Here I will try to login the user.
-                    this.onRevokeContactInvitation(contact);
-                },
-                true, this
-            );
-
-
-            // Accept contact invitation
-            Backend.eventHub.subscribe(
-                "accept_contact_invitation_event_",
-                (uuid: string) => {
-                },
-                (contact: Account) => {
-                    // Here I will try to login the user.
-                    this.onAcceptContactInvitation(contact);
-                },
-                true, this
-            );
-
-
-            // Decline contact invitation
-            Backend.eventHub.subscribe(
-                "decline_contact_invitation_event_",
-                (uuid: string) => {
-                },
-                (contact: Account) => {
-                    // Here I will try to login the user.
-                    this.onDeclineContactInvitation(contact);
-                },
-                true, this
-            );
-
-
-            // Decline contact invitation
-            Backend.eventHub.subscribe(
-                "delete_contact_event_",
-                (uuid: string) => {
-                },
-                (contact: Account) => {
-                    // Here I will try to login the user.
-                    this.onDeleteContact(contact);
-                },
-                true, this
-            );
-
-        });
-    }
-
 
     // By default the account will be the guest account.
     private static __account__: Account;
@@ -135,7 +134,7 @@ export class AccountController {
 
 
     // Get all account data from a give globule...
-    static getAccounts(query: string, callback: (accounts: Array<Account>) => void, errorCallback: (err: any) => void, globule: Globular = Backend.globular) {
+    static getAccounts(query: string, init: boolean, callback: (accounts: Array<Account>) => void, errorCallback: (err: any) => void, globule: Globular = Backend.globular) {
 
         generatePeerToken(globule, token => {
             let rqst = new GetAccountsRqst
@@ -163,7 +162,7 @@ export class AccountController {
                     }
 
                     // In that case I will return the list of account without init ther data
-                    if (query == "{}") {
+                    if (init == false) {
                         accounts_.forEach(a_ => {
                             if (AccountController.__accounts__[a_.getId() + "@" + a_.getDomain()] != undefined) {
                                 accounts.push(AccountController.__accounts__[a_.getId() + "@" + a_.getDomain()])
@@ -218,7 +217,8 @@ export class AccountController {
                     }
 
                     // intialyse the account data.
-                    initAccountData();
+                    if(init == true)
+                        initAccountData();
 
                 } else {
                     // In case of error I will return an empty array
@@ -406,10 +406,11 @@ export class AccountController {
       * @param errorCallback Error Callback.
       */
     public static getAccount(id: string, successCallback: (account: Account) => void, errorCallback: (err: any) => void) {
-        if (id) {
+        if (id==null || id == "") {
             errorCallback("No account id given to getAccount function!")
             return
         }
+
 
         let accountId = id
         let domain = Backend.globular.domain
@@ -1016,7 +1017,7 @@ export class AccountController {
     }
 
     // Invite a new contact.
-    onInviteContact(contact: Account) {
+    static onInviteContact(contact: Account) {
         // Create the user notification
         let mac = Backend.getGlobule(contact.getDomain()).config.Mac
         let recipient = contact.getId() + "@" + contact.getDomain()
@@ -1043,7 +1044,7 @@ export class AccountController {
     }
 
     // Accept contact.
-    onAcceptContactInvitation(contact: Account) {
+    static onAcceptContactInvitation(contact: Account) {
         // Create a user notification.
         let mac = Backend.getGlobule(contact.getDomain()).config.Mac
         let recipient = contact.getId() + "@" + contact.getDomain()
@@ -1073,7 +1074,7 @@ export class AccountController {
     }
 
     // Decline contact invitation.
-    onDeclineContactInvitation(contact: Account) {
+    static onDeclineContactInvitation(contact: Account) {
 
         let mac = Backend.getGlobule(contact.getDomain()).config.Mac
         let recipient = contact.getId() + "@" + contact.getDomain()
@@ -1102,7 +1103,7 @@ export class AccountController {
     }
 
     // Revoke contact invitation.
-    onRevokeContactInvitation(contact: Account) {
+    static onRevokeContactInvitation(contact: Account) {
 
         let mac = Backend.getGlobule(contact.getDomain()).config.Mac
         let recipient = contact.getId() + "@" + contact.getDomain()
@@ -1131,7 +1132,7 @@ export class AccountController {
     }
 
     // Delete contact invitation.
-    onDeleteContact(contact: Account) {
+    static onDeleteContact(contact: Account) {
 
         let mac = Backend.getGlobule(contact.getDomain()).config.Mac
         let recipient = contact.getId() + "@" + contact.getDomain()

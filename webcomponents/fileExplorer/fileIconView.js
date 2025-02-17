@@ -353,7 +353,7 @@ export class FileIconView extends HTMLElement {
                 evt.stopPropagation();
                 evt.preventDefault()
                 let url = evt.dataTransfer.getData("Url");
-                if (url.startsWith("https://www.imdb.com/title")) {
+                if (url.startsWith("https://www.imdb.com/")) {
                     view.setImdbTitleInfo(url, file)
                 }
             }

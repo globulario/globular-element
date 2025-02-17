@@ -167,3 +167,13 @@ globular-dialog-handle>h1 {
     border-color: var(--secondary-color);
     color: var(--primary-text-color);
 }
+
+paper-button {
+    background-color: var(--primary-color);
+    color: var(--on-primary-color);
+    border-radius: 0.5rem;
+    margin: 0.5rem;
+    padding: 0.5rem;
+    font-size: .85rem;
+    cursor: pointer;
+}

@@ -1,5 +1,7 @@
+import getUuidByString from "uuid-by-string";
 import { AccountController } from "../../backend/account";
-import { Backend } from "../../backend/backend";
+import { Backend, displayError } from "../../backend/backend";
+import { ContactCard } from "./contactCard";
 
 /**
  * Received contact invitations.
@@ -7,11 +9,10 @@ import { Backend } from "../../backend/backend";
 export class ReceivedContactInvitations extends HTMLElement {
 
     // Create the applicaiton view.
-    constructor(account, onAcceptContact, onDeclineContact, badge) {
+    constructor(account, onAcceptContact, onDeclineContact) {
         super()
         // Set the shadow dom.
         this.attachShadow({ mode: 'open' });
-        this.badge = badge
         this.account = account;
         this.onAcceptContact = onAcceptContact;
         this.onDeclineContact = onDeclineContact;
@@ -32,7 +33,7 @@ export class ReceivedContactInvitations extends HTMLElement {
                         this.appendContact(contact);
                     },
                     err => {
-                        ApplicationView.displayMessage(err, 3000)
+                        displayError(err, 3000)
                         console.log(err)
                     })
             },
@@ -47,7 +48,7 @@ export class ReceivedContactInvitations extends HTMLElement {
                         this.removeContact(contact);
                     },
                     err => {
-                        ApplicationView.displayMessage(err, 3000)
+                        displayError(err, 3000)
                         console.log(err)
                     })
             },
@@ -62,7 +63,7 @@ export class ReceivedContactInvitations extends HTMLElement {
                         this.removeContact(contact);
                     },
                     err => {
-                        ApplicationView.displayMessage(err, 3000)
+                        displayError(err, 3000)
                         console.log(err)
                     })
             },
@@ -77,7 +78,7 @@ export class ReceivedContactInvitations extends HTMLElement {
                         this.removeContact(contact);
                     },
                     err => {
-                        ApplicationView.displayMessage(err, 3000)
+                        displayError(err, 3000)
                         console.log(err)
                     })
             },
@@ -105,17 +106,17 @@ export class ReceivedContactInvitations extends HTMLElement {
         AccountController.getContacts(this.account, `{"status":"received"}`, (invitations) => {
 
             for (var i = 0; i < invitations.length; i++) {
-                Account.getAccount(invitations[i]._id,
+                AccountController.getAccount(invitations[i]._id,
                     (contact) => {
                         this.appendContact(contact);
                     },
                     err => {
-                        ApplicationView.displayMessage(err, 3000)
+                        displayError(err, 3000)
                         console.log(err)
                     })
             }
         }, err => {
-            ApplicationView.displayMessage(err, 3000)
+            displayError(err, 3000)
         })
     }
 
@@ -135,8 +136,6 @@ export class ReceivedContactInvitations extends HTMLElement {
         card.id = id
         card.setAcceptDeclineButton(this.onAcceptContact, this.onDeclineContact)
         this.appendChild(card)
-        this.badge.label = this.children.length
-        this.badge.style.display = "block"
     }
 
     removeContact(contact) {
@@ -145,10 +144,6 @@ export class ReceivedContactInvitations extends HTMLElement {
         let card = this.querySelector("#" + id)
         if (card != undefined) {
             this.removeChild(card)
-            this.badge.label = this.children.length
-            if (this.children.length == 0) {
-                this.badge.style.display = "none"
-            }
         }
     }
 }

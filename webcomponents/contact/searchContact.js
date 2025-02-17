@@ -1,8 +1,27 @@
+import { AccountController } from "../../backend/account";
+import { displayError } from "../../backend/backend";
+import { ContactCard } from "./contactCard";
+
 export class SearchContact extends HTMLElement {
     constructor() {
         super();
         this.attachShadow({ mode: "open" });
         this.results = [];
+
+        // Here is the class members.
+        this.onInviteContact = null;
+
+        // Revoke contact invitation
+        this.onRevokeContact = null;
+
+        // Accept contact invitation
+        this.onAcceptContact = null;
+
+        // Decline contact invitation
+        this.onDeclineContact = null;
+
+        // Delecte contact
+        this.onDeleteContact = null;
     }
 
     connectedCallback() {
@@ -16,25 +35,8 @@ export class SearchContact extends HTMLElement {
         const searchInput = this.shadowRoot.querySelector("#search_input");
         const resultsDiv = this.shadowRoot.querySelector("#results");
 
-        searchInput.addEventListener("input", () => {
-            const query = searchInput.value.trim().toLowerCase();
-            if (!query) {
-                resultsDiv.textContent = "No search results";
-                resultsDiv.classList.remove("hidden");
-                return;
-            }
-
-            // Simulated search logic (replace with actual logic)
-            const results = ["Account1", "Account2", "Account3"].filter(item => item.toLowerCase().includes(query));
-
-            if (results.length > 0) {
-                resultsDiv.innerHTML = results.map(item => `<div>${item}</div>`).join("");
-                resultsDiv.classList.remove("hidden");
-            } else {
-                resultsDiv.textContent = "No search results";
-                resultsDiv.classList.remove("hidden");
-            }
-        });
+        // I will handle the search input change event and test if the search input value is at least 3 characters long.
+        searchInput.addEventListener("input", this.handleSearch.bind(this));
     }
 
     async handleSearch(event) {
@@ -47,26 +49,66 @@ export class SearchContact extends HTMLElement {
 
         // Simulating API call
         this.results = await this.fetchAccounts(query);
+        console.log(this.results);
+
         this.renderResults();
     }
 
     async fetchAccounts(query) {
-        // Simulated API response
-        return [
-            { id: 1, name: "John Doe", status: "member" },
-            { id: 2, name: "Jane Smith", status: "invite" },
-            { id: 3, name: "Alice Johnson", status: "add" }
-        ].filter(account => account.name.toLowerCase().includes(query.toLowerCase()));
+        return new Promise((resolve, reject) => {
+            AccountController.getAccounts(`{"email":{"$regex": "${query}", "$options": "im"}}`, false, (accounts) => {
+                // Filter out the current user
+                const filteredAccounts = accounts.filter(obj => obj.getId() !== AccountController.account.getId());
+                resolve(filteredAccounts); // Properly resolve the promise with filtered accounts
+            }, (err) => {
+                console.log("Error: ", err);
+                displayError(err, 3000);
+                reject(err); // Properly reject the promise on error
+            });
+        });
     }
 
     renderResults() {
         const resultsContainer = this.shadowRoot.querySelector("#results");
         resultsContainer.innerHTML = "";
-        this.results.forEach(account => {
-            const contactCard = document.createElement("contact-card");
-            contactCard.setAttribute("name", account.name);
-            contactCard.setAttribute("status", account.status);
-            resultsContainer.appendChild(contactCard);
+        this.results.forEach(contact => {
+            const card = new ContactCard(AccountController.account, contact, true);
+            AccountController.getContacts(AccountController.account, "{}",
+                (contacts) => {
+                    const info = contacts.find(obj => {
+                        return obj._id === contact.getId() + "@" + contact.getDomain();
+                    })
+
+                    if (contact.getId() != AccountController.account.getId()) {
+                        if (info == undefined) {
+                            card.setInviteButton((contact) => {
+                                this.onInviteContact(contact);
+                            })
+                        } else if (info.status == "sent") {
+                            // Here I will display the revoke invitation button.
+                            card.setRevokeButton(()=>{this.onRevokeContact(contact); card.parentNode.removeChild(card);})
+                        } else if (info.status == "received") {
+                            // Here I will display the accept/decline button.
+                            card.setAcceptDeclineButton(this.onAcceptContact, this.onDeclineContact)
+                        } else if (info.status == "revoked" || info.status == "deleted") {
+                            // Here I will display the accept/decline button.
+                            card.setInviteButton((contact) => {
+                                this.onInviteContact(contact);
+                            })
+                        } else if (info.status == "accepted") {
+                            // Here I will display the revoke invitation button.
+                            card.setDeleteButton(this.onDeleteContact)
+                        }
+                    }
+                },
+                () => {
+                    card.setInviteButton((contact) => {
+                        this.onInviteContact(contact);
+                        this.inviteContactInput.clear();
+                    })
+                })
+ 
+            resultsContainer.appendChild(card);
         });
     }
 
@@ -87,7 +129,7 @@ export class SearchContact extends HTMLElement {
                 box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
                 padding: 16px;
                 border-radius: 8px;
-                width: 320px;
+                min-width: 350px;
                 max-width: 90%;
             }
     
@@ -134,8 +176,8 @@ export class SearchContact extends HTMLElement {
                 overflow-y: auto;
                 display: flex;
                 flex-direction: column;
-                align-items: center;
-                justify-content: center;
+                align-items: flex-start;
+                justify-content: flex-start;
                 color: var(--on-surface-color, #666);
                 font-size: 1rem;
             }

@@ -41,48 +41,99 @@ export class ContactCard extends HTMLElement {
             return
         }
 
+        let name = this.contact.getName()
+        if (name == undefined) {
+            name = this.contact.getId()
+        }
+        if (this.contact.getFirstname().length > 0 && this.contact.getLastname().length > 0) {
+
+            name = this.contact.getFirstname() + " " + this.contact.getLastname()
+
+        }
+
         // Innitialisation of the layout.
         this.shadowRoot.innerHTML = `
         <style>
-           
-            .contact-invitation-div{
-                transition: background 0.2s ease,padding 0.8s linear;
+            img {
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                object-fit: cover;
+            }
+    
+            .contact-invitation-div {
+                transition: background 0.2s ease, padding 0.8s linear;
                 background-color: var(--surface-color);
                 color: var(--on-surface-color);
                 position: relative;
+                display: flex;
+                flex-direction: column;
             }
-
-            .contact-invitation-div.actionable:hover{
+    
+            .contact-invitation-div.actionable:hover {
                 filter: invert(10%);
             }
-
-            .actions-div{
+    
+            .contact-header {
+                display: flex;
+                align-items: center;
+                padding: 5px;
+            }
+    
+            .contact-info {
+                display: flex;
+                flex-direction: column;
+                width: 100%;
+                font-size: 0.85em;
+                padding-left: 8px;
+            }
+    
+            .actions-div {
                 display: flex;
                 justify-content: flex-end;
             }
-
+    
             globular-session-state, globular-ringtones {
                 padding: 8px;
+                display: none;
             }
-
+    
+            .profile-img {
+                display: none;
+            }
+    
+            .profile-icon {
+                width: 40px;
+                height: 40px;
+                --iron-icon-fill-color: var(--palette-action-disabled);
+                display: none;
             }
         </style>
-        <div class="contact-invitation-div" style="display: flex; flex-direction: column;">
-            <div style="display: flex; align-items: center; padding: 5px;"> 
-                <img style="width: 40px; height: 40px; display: ${this.contact.getProfilepicture().length == 0 ? "none" : "block"};" src="${this.contact.getProfilepicture()}"></img>
-                <iron-icon icon="account-circle" style="width: 40px; height: 40px; --iron-icon-fill-color:var(--palette-action-disabled); display: ${this.contact.getProfilepicture().length != 0 ? "none" : "block"};"></iron-icon>
-                <div style="display: flex; flex-direction: column; width:300px; font-size: .85em; padding-left: 8px;">
-                    <span>${this.contact.getName()}</span>
+        <div class="contact-invitation-div">
+            <div class="contact-header"> 
+                <img class="profile-img" alt='Profile Picture' src="${this.contact.getProfilepicture()}">
+                <iron-icon class="profile-icon" icon="account-circle"></iron-icon>
+                <div class="contact-info">
+                    <span>${name}</span>
                     <span>${this.contact.getEmail()}</span>
                 </div>
             </div>
             <globular-session-state account="${this.contact.getId() + "@" + this.contact.getDomain()}"></globular-session-state>
-            <globular-ringtones style="display: none;" dir="audio/ringtone" id="${this.contact.getId() + "_" + this.contact.getDomain() + "_ringtone"}" account="${this.contact.getId() + "@" + this.contact.getDomain()}"> </globular-ringtones>
+            <globular-ringtones dir="audio/ringtone" id="${this.contact.getId() + "_" + this.contact.getDomain() + "_ringtone"}" account="${this.contact.getId() + "@" + this.contact.getDomain()}"></globular-ringtones>
             <div class="actions-div">
                 <slot></slot>
             </div>
         </div>
-        `
+    `;
+
+        // Set profile picture visibility dynamically
+        const profileImg = this.shadowRoot.querySelector('.profile-img');
+        const profileIcon = this.shadowRoot.querySelector('.profile-icon');
+        if (this.contact.getProfilepicture().length > 0) {
+            profileImg.style.display = "block";
+        } else {
+            profileIcon.style.display = "block";
+        }
         /** only element with actions will have illuminated background... */
         if (this.children.length > 0 || this.actionable) {
             this.shadowRoot.querySelector(".contact-invitation-div").classList.add("actionable")
@@ -118,6 +169,7 @@ export class ContactCard extends HTMLElement {
         inviteBtn.onclick = () => {
             if (onInviteConctact != null) {
                 onInviteConctact(this.contact)
+                inviteBtn.disabled = true // disable the button after invitation
             }
         }
     }

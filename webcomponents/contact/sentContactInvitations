@@ -1,5 +1,7 @@
+import getUuidByString from "uuid-by-string";
 import { AccountController } from "../../backend/account";
 import { Backend, displayMessage } from "../../backend/backend";
+import { ContactCard } from "./contactCard";
 
 /**
  * Display the list of sent contact invitation. If the invitation was not pending it will be removed.
@@ -7,10 +9,8 @@ import { Backend, displayMessage } from "../../backend/backend";
 export class SentContactInvitations extends HTMLElement {
 
     // Create the applicaiton view.
-    constructor(account, onRevokeContact, badge) {
+    constructor(account, onRevokeContact) {
         super()
-
-        this.badge = badge;
 
         // Set the shadow dom.
         this.attachShadow({ mode: 'open' });
@@ -136,10 +136,8 @@ export class SentContactInvitations extends HTMLElement {
         let card = new ContactCard(this.account, contact)
 
         card.id = id
-        card.setRevokeButton(this.onRevokeContact)
+        card.setRevokeButton(()=>{this.onRevokeContact(contact); card.remove()})
         this.appendChild(card)
-        this.badge.label = this.children.length
-        this.badge.style.display = "block"
         window.dispatchEvent(new Event('resize'));
     }
 
@@ -149,10 +147,6 @@ export class SentContactInvitations extends HTMLElement {
         let card = this.querySelector("#" + id)
         if (card != undefined) {
             this.removeChild(card)
-            this.badge.label = this.children.length
-            if (this.children.length == 0) {
-                this.badge.style.display = "none"
-            }
         }
         window.dispatchEvent(new Event('resize'));
     }

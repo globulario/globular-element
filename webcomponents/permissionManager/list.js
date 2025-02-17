@@ -18,7 +18,7 @@ export class SearchableAccountList extends SearchableList {
         // the onadd handler
         let onadd = (accounts) => {
             // Now the user list...
-            AccountController.getAccounts("{}", (allAccounts) => {
+            AccountController.getAccounts("{}", false, (allAccounts) => {
 
                 accounts.forEach(a => {
                     // remove all existing items.

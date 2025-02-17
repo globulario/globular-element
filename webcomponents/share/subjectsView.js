@@ -348,7 +348,7 @@ export class GlobularSubjectsView extends HTMLElement {
         }
 
         // So here I will initialyse the list of accounts...
-        Account.getAccounts("{}", accounts => {
+        Account.getAccounts("{}", false, accounts => {
             let range = document.createRange()
             let count = 0
 

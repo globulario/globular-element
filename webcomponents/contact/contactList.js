@@ -1,8 +1,9 @@
 import { Call, CreateNotificationRqst, NotificationType, SetCallRqst } from "globular-web-client/resource/resource_pb";
 import { AccountController } from "../../backend/account";
-import { Backend, displayMessage, generatePeerToken, getUrl } from "../../backend/backend";
+import { Backend, displayError, displayMessage, generatePeerToken, getUrl } from "../../backend/backend";
 import { VideoConversation } from "../videoCall/videoConversation";
 import getUuidByString from "uuid-by-string";
+import { ContactCard } from "./contactCard";
 
 /**
  * The contact list.
@@ -10,10 +11,8 @@ import getUuidByString from "uuid-by-string";
 export class ContactList extends HTMLElement {
 
     // Create the applicaiton view.
-    constructor(account, onDeleteContact, badge) {
+    constructor(account, onDeleteContact) {
         super()
-
-        this.badge = badge;
 
         // Keep contact card in memory...
         this.cards = {}
@@ -29,7 +28,7 @@ export class ContactList extends HTMLElement {
             (uuid) => { },
             (evt) => {
                 let invitation = JSON.parse(evt);
-                AccountController.getAccount(invitation.getId(),
+                AccountController.getAccount(invitation._id,
                     (contact) => {
                         if (invitation.getProfilepicture())
                             contact.setProfilepicture(invitation.getProfilepicture())
@@ -47,7 +46,7 @@ export class ContactList extends HTMLElement {
             (uuid) => { },
             (evt) => {
                 let invitation = JSON.parse(evt);
-                AccountController.getAccount(invitation.getId(),
+                AccountController.getAccount(invitation._id,
                     (contact) => {
                         this.removeContact(contact);
                     },
@@ -131,7 +130,7 @@ export class ContactList extends HTMLElement {
                         let timeout = setTimeout(() => {
                             audio.pause()
                             if (toast) {
-                                toast.dismiss();
+                                toast.hideToast();
                             }
 
                             Backend.getGlobule(caller.getDomain()).eventHub.publish(call.getUuid() + "_miss_call_evt", call.serializeBinary(), false)
@@ -142,7 +141,7 @@ export class ContactList extends HTMLElement {
 
                         let cancelBtn = toast.el.querySelector("#cancel-button")
                         cancelBtn.onclick = () => {
-                            toast.dismiss();
+                            toast.hideToast();
                             audio.pause()
                             clearTimeout(timeout)
 
@@ -156,7 +155,7 @@ export class ContactList extends HTMLElement {
                         let okBtn = toast.el.querySelector("#ok-button")
                         okBtn.onclick = () => {
 
-                            toast.dismiss();
+                            toast.hideToast();
                             audio.pause()
                             clearTimeout(timeout)
 
@@ -179,7 +178,7 @@ export class ContactList extends HTMLElement {
 
                             // The contact has answer the call!
                             audio.pause()
-                            toast.dismiss();
+                            toast.hideToast();
                         }, false)
                     }, err => ApplicationView.displayMessage(err, 3000))
 
@@ -240,11 +239,11 @@ export class ContactList extends HTMLElement {
 
             for (var i = 0; i < invitations.length; i++) {
                 let invitation = invitations[i]
-                AccountController.getAccount(invitation.getId(),
+                AccountController.getAccount(invitation._id,
                     (contact) => {
-                        if (invitation.getProfilepicture())
-                            contact.setProfilepicture(invitation.getProfilepicture())
-                        contact.ringtone = invitation.getRingtone()
+                        if (invitation.profilePicture)
+                            contact.setProfilepicture(invitation.profilePicture)
+                        contact.ringtone = invitation.ringtone
                         this.appendContact(contact);
                     },
                     err => {
@@ -282,8 +281,6 @@ export class ContactList extends HTMLElement {
         card.showRingtone()
         this.appendChild(card)
 
-        this.badge.label = this.children.length
-        this.badge.style.display = "block"
 
         // if the globule is disconnected I will remove the contact...
         Backend.eventHub.subscribe("remove_contact_card_" + contact.getDomain() + "_evt_", uuid => { }, evt => {
@@ -300,10 +297,6 @@ export class ContactList extends HTMLElement {
         let card = this.querySelector("#" + id)
         if (card != undefined) {
             this.removeChild(card)
-            this.badge.label = this.children.length
-            if (this.children.length == 0) {
-                this.badge.style.display = "none"
-            }
         }
     }
 
@@ -351,13 +344,7 @@ export class ContactList extends HTMLElement {
                             // So here I will get the information from imdb and propose to assciate it with the file.
                             let toast = displayMessage(`
                             <style>
-                            
-                                paper-icon-button {
-                                    width: 40px;
-                                    height: 40px;
-                                    border-radius: 50%;
-                                }
-
+        
                             </style>
                             <div id="select-media-dialog">
                                 <div>Outgoing Call to </div>
@@ -374,7 +361,7 @@ export class ContactList extends HTMLElement {
                             // set timeout...
                             let timeout = setTimeout(() => {
                                 audio.pause()
-                                toast.dismiss();
+                                toast.hideToast();
                                 Backend.getGlobule(caller.getDomain()).eventHub.publish(call.getUuid() + "_miss_call_evt", call.serializeBinary(), false)
                                 if (caller.getDomain() != callee.getDomain())
                                     Backend.getGlobule(callee.getDomain()).eventHub.publish(call.getUuid() + "_miss_call_evt", call.serializeBinary(), false)
@@ -383,7 +370,7 @@ export class ContactList extends HTMLElement {
 
                             let cancelBtn = toast.el.querySelector("#cancel-button")
                             cancelBtn.onclick = () => {
-                                toast.dismiss();
+                                toast.hideToast();
                                 audio.pause()
                                 clearTimeout(timeout)
 
@@ -397,7 +384,7 @@ export class ContactList extends HTMLElement {
                             Backend.getGlobule(contact.getDomain()).eventHub.subscribe(call.getUuid() + "_answering_call_evt", uuid => { }, evt => {
                                 // The contact has answer the call!
                                 audio.pause()
-                                toast.dismiss();
+                                toast.hideToast();
                                 clearTimeout(timeout)
 
 
@@ -420,7 +407,7 @@ export class ContactList extends HTMLElement {
 
                                 // The contact has answer the call!
                                 audio.pause()
-                                toast.dismiss();
+                                toast.hideToast();
                                 clearTimeout(timeout)
 
                                 generatePeerToken(Backend.getGlobule(contact.getDomain()), token => {
