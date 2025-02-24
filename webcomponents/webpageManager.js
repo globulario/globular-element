@@ -1540,6 +1540,7 @@ class GlobularWebpageManager extends HTMLElement {
         let router = document.querySelector("globular-router");
         let application = router.getAttribute("base");
 
+
         // Create the search request
         let rqst = new SearchDocumentsRequest();
         rqst.setPathsList([`${globule.config.DataPath}/search/applications/${application}`]);

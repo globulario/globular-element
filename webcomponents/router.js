@@ -12,6 +12,8 @@ export class Router extends HTMLElement {
       // Get the base path from the attribute
       this.base = "/" + this.getAttribute('base');
 
+      // Set the base path in localStorage
+      localStorage.setItem('application', this.base);
       
       // Handle browser navigation (back/forward)
       window.addEventListener('popstate', () => {

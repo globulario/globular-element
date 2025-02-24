@@ -23,6 +23,7 @@ import { Backend } from './backend/backend';
 import './webcomponents/router';
 import './webcomponents/dynamicWebpage';
 import './webcomponents/contact/contacts';
+import './webcomponents/notification/notifications'
 
 // Import the styles
 import './styles.css';

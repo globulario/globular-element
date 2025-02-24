@@ -3,6 +3,8 @@ import { AccountController } from "../../backend/account"
 import { Wizard } from "../wizard";
 import { randomUUID } from "../utility";
 import { Backend } from "../../backend/backend";
+import { CreateNotificationRqst, Notification } from "globular-web-client/resource/resource_pb";
+import { GetResourcePermissionsRqst, SetResourcePermissionsRqst } from "globular-web-client/rbac/rbac_pb";
 
 export class ShareResourceWizard extends HTMLElement {
     // attributes.

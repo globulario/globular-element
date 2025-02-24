@@ -44,7 +44,7 @@ export function getUrl(globule: GlobularWebClient.Globular = Backend.globular): 
     return url;
 }
 
-export function displayMessage(msg: string, duration: number = 3000) {
+export function displayMessage(msg: string, duration: number = -1) {
 
     // Create a custom DOM element for the notification content
     // Create a container element with an error icon and text

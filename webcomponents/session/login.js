@@ -8,6 +8,7 @@ import '@polymer/paper-checkbox/paper-checkbox.js';
 import { Backend, displayError, displayMessage, generatePeerToken, getUrl } from '../../backend/backend';
 import { AccountController } from '../../backend/account';
 import { NotificationController } from '../../backend/notification';
+import { Notification } from 'globular-web-client/resource/resource_pb';
 
 // Load Google Identity Services (GIS) script
 function loadGoogleScript(callback) {

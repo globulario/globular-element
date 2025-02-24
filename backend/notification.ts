@@ -8,14 +8,13 @@ import getUuidByString from "uuid-by-string";
  */
 export class NotificationController {
     constructor() {
-        this.initNotifications();
     }
     /**
       * Initialyse the user and application notifications
       */
-    private initNotifications() {
+    static initNotifications() {
         // Initialyse application notifications.
-        this.getNotifications(
+        NotificationController.getNotifications(
             NotificationType.APPLICATION_NOTIFICATION,
             (notifications: Array<Notification>) => {
                 Backend.globular.eventHub.publish(
@@ -29,7 +28,7 @@ export class NotificationController {
             }
         );
 
-        this.getNotifications(
+        NotificationController.getNotifications(
             NotificationType.USER_NOTIFICATION,
             (notifications: Array<Notification>) => {
                 Backend.globular.eventHub.publish(
@@ -137,7 +136,7 @@ export class NotificationController {
      * @param callback The success callback with the list of notifications.
      * @param errorCallback The error callback with the error message.
      */
-    getNotifications(
+    static getNotifications(
         type: NotificationType,
         callback: (notifications: Array<Notification>) => void,
         errorCallback: (err: any) => void
@@ -211,7 +210,7 @@ export class NotificationController {
      * Remove a notification.
      * @param notification The notification to remove.
      */
-    removeNotification(notification: Notification) {
+    static removeNotification(notification: Notification) {
 
         let rqst = new DeleteNotificationRqst
         let globule = Backend.globular
@@ -264,7 +263,7 @@ export class NotificationController {
     /**
      * Remove all notification.
      */
-    clearNotifications(type: NotificationType) {
+    static clearNotifications(type: NotificationType) {
         let user_domain = window.localStorage.getItem("user_domain")
         if (user_domain == null) {
             displayError("No user domain defined", 4000)

@@ -1,9 +1,10 @@
-import { Call, CreateNotificationRqst, NotificationType, SetCallRqst } from "globular-web-client/resource/resource_pb";
+import { Call, CreateNotificationRqst, NotificationType, SetCallRqst, Notification } from "globular-web-client/resource/resource_pb";
 import { AccountController } from "../../backend/account";
 import { Backend, displayError, displayMessage, generatePeerToken, getUrl } from "../../backend/backend";
 import { VideoConversation } from "../videoCall/videoConversation";
 import getUuidByString from "uuid-by-string";
 import { ContactCard } from "./contactCard";
+import { randomUUID } from "../utility";
 
 /**
  * The contact list.
@@ -72,7 +73,7 @@ export class ContactList extends HTMLElement {
                         let url = getUrl(globule)
 
                         // so here I will found the caller ringtone...
-                        let path = caller.getRingtone()
+                        let path = caller.ringtone
                         path = path.replace(globule.config.WebRoot, "")
 
                         path.split("/").forEach(item => {
@@ -87,6 +88,10 @@ export class ContactList extends HTMLElement {
                         let audio = new Audio(url)
                         audio.setAttribute("loop", "true")
                         audio.setAttribute("autoplay", "true")
+                        let name = caller.getName()
+                        if(caller.getFirstname().length >  0 && caller.getLastname().length > 0){
+                            name = caller.getFirstname() + " " + caller.getLastname()
+                        }
 
                         // So now I will display the interface the user to ask...
                         // So here I will get the information from imdb and propose to assciate it with the file.
@@ -119,9 +124,9 @@ export class ContactList extends HTMLElement {
                             <div>Incomming Call from</div>
                             <img style="width: 185.31px; height: 100%; align-self: center; padding-top: 10px; padding-bottom: 15px;" src="${caller.getProfilepicture()}"> </img>
                             <div style="display: flex; justify-content: center; align-items: center;">
-                                <span style="max-width: 300px; font-size: 1.5rem; margin-right: 16px;">${caller.getName()}</span>
+                                <span style="max-width: 300px; font-size: 1.5rem; margin-right: 16px;">${name}</span>
                                 <paper-icon-button id="ok-button" style="background-color: green; margin-right: 16px;" icon="communication:call"></paper-icon-button>
-                                <paper-icon-button id="cancel-button"  style="background-color: red;" icon="communication:call-end">Dismiss</paper-button>
+                                <paper-icon-button id="cancel-button"  style="background-color: var(--primary-color);" icon="communication:call-end">Dismiss</paper-button>
                             </div>
                         </div>
                         `)
@@ -139,7 +144,7 @@ export class ContactList extends HTMLElement {
 
                         }, 30 * 1000)
 
-                        let cancelBtn = toast.el.querySelector("#cancel-button")
+                        let cancelBtn = toast.toastElement.querySelector("#cancel-button")
                         cancelBtn.onclick = () => {
                             toast.hideToast();
                             audio.pause()
@@ -152,7 +157,7 @@ export class ContactList extends HTMLElement {
 
                         }
 
-                        let okBtn = toast.el.querySelector("#ok-button")
+                        let okBtn = toast.toastElement.querySelector("#ok-button")
                         okBtn.onclick = () => {
 
                             toast.hideToast();
@@ -339,6 +344,10 @@ export class ContactList extends HTMLElement {
                             let audio = new Audio(url)
                             audio.setAttribute("loop", "true")
                             audio.setAttribute("autoplay", "true")
+                            let name = caller.getName()
+                            if(callee.getFirstname().length >  0 && callee.getLastname().length > 0){
+                                name = callee.getFirstname() + " " + callee.getLastname()
+                            }
 
                             // So now I will display the interface the user to ask...
                             // So here I will get the information from imdb and propose to assciate it with the file.
@@ -351,9 +360,9 @@ export class ContactList extends HTMLElement {
                                 <div style="display: flex; flex-direction: column; justify-content: center;">
                                     <img style="width: 185.31px; align-self: center; padding-top: 10px; padding-bottom: 15px;" src="${callee.getProfilepicture()}"> </img>
                                 </div>
-                                <span style="max-width: 300px; font-size: 1.5rem;">${callee.getName()}</span>
+                                <span style="max-width: 300px; font-size: 1.5rem;">${name}</span>
                                 <div style="display: flex; justify-content: flex-end;">
-                                    <paper-icon-button id="cancel-button" style="background-color: red " icon="communication:call-end"></paper-icon-button>
+                                    <paper-icon-button id="cancel-button" style="background-color: var(--primary-color); border-radius: 50%; " icon="communication:call-end"></paper-icon-button>
                                 </div>
                             </div>
                             `)
@@ -368,7 +377,7 @@ export class ContactList extends HTMLElement {
 
                             }, 30 * 1000)
 
-                            let cancelBtn = toast.el.querySelector("#cancel-button")
+                            let cancelBtn = toast.toastElement.querySelector("#cancel-button")
                             cancelBtn.onclick = () => {
                                 toast.hideToast();
                                 audio.pause()
@@ -419,7 +428,10 @@ export class ContactList extends HTMLElement {
                                     notification.setSender(AccountController.account.getId() + "@" + AccountController.account.getDomain())
                                     notification.setNotificationType(NotificationType.USER_NOTIFICATION)
                                     notification.setMac(Backend.getGlobule(contact.getDomain()).config.Mac)
-
+                                    let name = AccountController.account.getName()
+                                    if(AccountController.account.getFirstname().length >  0 && AccountController.account.getLastname().length > 0){
+                                        name = AccountController.account.getFirstname() + " " + AccountController.account.getLastname()
+                                    }
                                     let date = new Date()
                                     let msg = `
                                     <div style="display: flex; flex-direction: column; padding: 16px;">
@@ -427,7 +439,7 @@ export class ContactList extends HTMLElement {
                                             ${date.toLocaleString()}
                                         </div>
                                         <div>
-                                            Missed call from ${AccountController.account.getName()}
+                                            Missed call from ${name}
                                         </div>
                                     </div>
                                     `
