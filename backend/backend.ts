@@ -78,6 +78,8 @@ export function displayMessage(msg: string, duration: number = -1) {
  */
 export function displayError(err: any, duration: number = 3000) {
 
+    console.error(err);
+    
     // Create a custom DOM element for the notification content
     // Create a container element with an error icon and text
     const errorContainer = document.createElement('div');

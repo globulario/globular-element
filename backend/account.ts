@@ -921,7 +921,9 @@ export class AccountController {
             stream.on("status", (status) => {
                 if (status.code == 0) {
                     uint8arrayToStringMethod(data, (str: string) => {
-                        callback(JSON.parse(str));
+                        let contacts = JSON.parse(str);
+                        console.log("contacts ", query, contacts)
+                        callback(contacts);
                     });
                 } else {
                     console.log("fail to retreive contacts with error: ", status.details)

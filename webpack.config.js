@@ -3,6 +3,7 @@ const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const { CleanWebpackPlugin } = require("clean-webpack-plugin");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
+const TerserPlugin = require("terser-webpack-plugin");
 
 module.exports = (env, argv) => {
     const isProduction = argv.mode === "production";
@@ -12,7 +13,8 @@ module.exports = (env, argv) => {
         output: {
             filename: "bundle.min.[contenthash].js",
             path: path.resolve(__dirname, "dist"),
-            publicPath: isProduction ? "/globular-element/" : "/", // Set only in production
+            publicPath: isProduction ? "/globular-element/" : "/",
+            chunkFilename: "chunk.[contenthash].js",
         },
         mode: isProduction ? "production" : "development",
         devtool: isProduction ? "source-map" : "eval-source-map",
@@ -22,7 +24,6 @@ module.exports = (env, argv) => {
                 "@polymer": path.resolve(__dirname, "node_modules/@polymer"),
                 "crypto": path.resolve(__dirname, 'node_modules/crypto-browserify'),
             },
-            
         },
         module: {
             rules: [
@@ -55,11 +56,13 @@ module.exports = (env, argv) => {
         },
         plugins: [
             new CleanWebpackPlugin(),
-            new MiniCssExtractPlugin({ filename: "./style.css" }),
+            new MiniCssExtractPlugin({
+                filename: "./style.[contenthash].css",
+            }),
             new HtmlWebpackPlugin({
                 template: "./index.html",
                 inject: "body",
-                publicPath: isProduction ? "/globular-element/" : "/", // Set only in production
+                publicPath: isProduction ? "/globular-element/" : "/",
             }),
             new CopyWebpackPlugin({
                 patterns: [
@@ -70,6 +73,13 @@ module.exports = (env, argv) => {
                 ],
             }),
         ],
+        optimization: {
+            minimize: true,
+            minimizer: [new TerserPlugin()],
+            splitChunks: {
+                chunks: 'all',
+            },
+        },
         devServer: {
             static: {
                 directory: path.join(__dirname, "dist"),
@@ -82,9 +92,9 @@ module.exports = (env, argv) => {
                 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
                 'Access-Control-Allow-Headers': '*',
             },
-            allowedHosts: 'all', // Ensures the dev server allows all hosts
+            allowedHosts: 'all',
             client: {
-                webSocketURL: 'auto://0.0.0.0:0/ws', // Prevents CORS issues with WebSocket
+                webSocketURL: 'auto://0.0.0.0:0/ws',
             },
         },
     };

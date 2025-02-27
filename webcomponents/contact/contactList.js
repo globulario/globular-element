@@ -5,6 +5,7 @@ import { VideoConversation } from "../videoCall/videoConversation";
 import getUuidByString from "uuid-by-string";
 import { ContactCard } from "./contactCard";
 import { randomUUID } from "../utility";
+import { Ringtone } from "../videoCall/ringtone";
 
 /**
  * The contact list.
@@ -31,9 +32,9 @@ export class ContactList extends HTMLElement {
                 let invitation = JSON.parse(evt);
                 AccountController.getAccount(invitation._id,
                     (contact) => {
-                        if (invitation.getProfilepicture())
-                            contact.setProfilepicture(invitation.getProfilepicture())
-                        contact.ringtone = invitation.getRingtone()
+                        if (invitation.profilePicture)
+                            contact.setProfilepicture(invitation.profilePicture)
+                        contact.ringtone = invitation.ringtone
                         this.appendContact(contact);
                     },
                     err => {
@@ -69,124 +70,134 @@ export class ContactList extends HTMLElement {
 
                     let globule = Backend.getGlobule(callee.getDomain())
 
-                    generatePeerToken(globule, token => {
-                        let url = getUrl(globule)
+                    let url = getUrl(globule)
+                    if (caller.ringtone == undefined) {
+                        caller.ringtone = ""
+                    }
 
-                        // so here I will found the caller ringtone...
-                        let path = caller.ringtone
-                        path = path.replace(globule.config.WebRoot, "")
+                    // so here I will found the caller ringtone...
+                    let path = caller.ringtone
+                    if (path == "") {
+                        let router = document.querySelector("globular-router")
+                        if (router) {
+                            path = router.base + path
+                        }
+                        path += "/assets/audio/ringtone/little_do_you_know.mp3"
+                    }
+                    path = path.replace(globule.config.WebRoot, "")
 
-                        path.split("/").forEach(item => {
-                            item = item.trim()
-                            if (item.length > 0) {
-                                url += "/" + encodeURIComponent(item)
-                            }
-                        })
+                    path.split("/").forEach(item => {
+                        item = item.trim()
+                        if (item.length > 0) {
+                            url += "/" + encodeURIComponent(item)
+                        }
+                    })
 
-                        url += "&token=" + token
+                    let layout = document.querySelector("globular-app-layout")
+                    if (layout) {
+                        url += `?application=${layout.getAttribute("application")}`
+                    }
 
-                        let audio = new Audio(url)
-                        audio.setAttribute("loop", "true")
-                        audio.setAttribute("autoplay", "true")
-                        let name = caller.getName()
-                        if(caller.getFirstname().length >  0 && caller.getLastname().length > 0){
-                            name = caller.getFirstname() + " " + caller.getLastname()
+                    let audio = new Audio(url)
+                    audio.setAttribute("loop", "true")
+                    audio.setAttribute("autoplay", "true")
+                    let name = caller.getName()
+                    if (caller.getFirstname().length > 0 && caller.getLastname().length > 0) {
+                        name = caller.getFirstname() + " " + caller.getLastname()
+                    }
+
+                    // So now I will display the interface the user to ask...
+                    // So here I will get the information from imdb and propose to assciate it with the file.
+                    let toast = displayMessage(`
+                    <style>
+                       
+                        #select-media-dialog{
+                            display: flex; flex-direction: column; 
+                            justify-content: center; 
+                            width: 100%;
                         }
 
-                        // So now I will display the interface the user to ask...
-                        // So here I will get the information from imdb and propose to assciate it with the file.
-                        let toast = displayMessage(`
-                        <style>
-                           
-                            #select-media-dialog{
-                                display: flex; flex-direction: column; 
-                                justify-content: center; 
-                                width: 100%;
-                            }
+                        paper-icon-button {
+                            width: 40px;
+                            height: 40px;
+                            border-radius: 50%;
+                        }
 
-                            paper-icon-button {
-                                width: 40px;
-                                height: 40px;
-                                border-radius: 50%;
-                            }
-
-                            #call-img{
-                                width: 185.31px; 
-                                height: 100%; 
-                                align-self: center; 
-                                justify-self: center;
-                                padding-top: 10px; 
-                                padding-bottom: 15px;
-                            }
-                              
-                        </style>
-                        <div id="select-media-dialog">
-                            <div>Incomming Call from</div>
-                            <img style="width: 185.31px; height: 100%; align-self: center; padding-top: 10px; padding-bottom: 15px;" src="${caller.getProfilepicture()}"> </img>
-                            <div style="display: flex; justify-content: center; align-items: center;">
-                                <span style="max-width: 300px; font-size: 1.5rem; margin-right: 16px;">${name}</span>
-                                <paper-icon-button id="ok-button" style="background-color: green; margin-right: 16px;" icon="communication:call"></paper-icon-button>
-                                <paper-icon-button id="cancel-button"  style="background-color: var(--primary-color);" icon="communication:call-end">Dismiss</paper-button>
-                            </div>
+                        #call-img{
+                            width: 185.31px; 
+                            height: 100%; 
+                            align-self: center; 
+                            justify-self: center;
+                            padding-top: 10px; 
+                            padding-bottom: 15px;
+                        }
+                          
+                    </style>
+                    <div id="select-media-dialog">
+                        <div>Incomming Call from</div>
+                        <img style="width: 185.31px; height: 100%; align-self: center; padding-top: 10px; padding-bottom: 15px;" src="${caller.getProfilepicture()}"> </img>
+                        <div style="display: flex; justify-content: center; align-items: center;">
+                            <span style="max-width: 300px; font-size: 1.5rem; margin-right: 16px;">${name}</span>
+                            <paper-icon-button id="ok-button" style="background-color: green; margin-right: 16px;" icon="communication:call"></paper-icon-button>
+                            <paper-icon-button id="cancel-button"  style="background-color: var(--primary-color);" icon="communication:call-end">Dismiss</paper-button>
                         </div>
-                        `)
+                    </div>
+                    `)
 
 
-                        let timeout = setTimeout(() => {
-                            audio.pause()
-                            if (toast) {
-                                toast.hideToast();
-                            }
-
-                            Backend.getGlobule(caller.getDomain()).eventHub.publish(call.getUuid() + "_miss_call_evt", call.serializeBinary(), false)
-                            if (caller.getDomain() != callee.getDomain())
-                                Backend.getGlobule(callee.getDomain()).eventHub.publish(call.getUuid() + "_miss_call_evt", call.serializeBinary(), false)
-
-                        }, 30 * 1000)
-
-                        let cancelBtn = toast.toastElement.querySelector("#cancel-button")
-                        cancelBtn.onclick = () => {
+                    let timeout = setTimeout(() => {
+                        audio.pause()
+                        if (toast) {
                             toast.hideToast();
-                            audio.pause()
-                            clearTimeout(timeout)
-
-                            // Here I will send miss call event...
-                            Backend.getGlobule(caller.getDomain()).eventHub.publish(call.getUuid() + "_miss_call_evt", call.serializeBinary(), false)
-                            if (caller.getDomain() != callee.getDomain())
-                                Backend.getGlobule(callee.getDomain()).eventHub.publish(call.getUuid() + "_miss_call_evt", call.serializeBinary(), false)
-
                         }
 
-                        let okBtn = toast.toastElement.querySelector("#ok-button")
-                        okBtn.onclick = () => {
+                        Backend.getGlobule(caller.getDomain()).eventHub.publish(call.getUuid() + "_miss_call_evt", call.serializeBinary(), false)
+                        if (caller.getDomain() != callee.getDomain())
+                            Backend.getGlobule(callee.getDomain()).eventHub.publish(call.getUuid() + "_miss_call_evt", call.serializeBinary(), false)
 
-                            toast.hideToast();
-                            audio.pause()
-                            clearTimeout(timeout)
+                    }, 30 * 1000)
 
-                            // The contact has answer the call!
-                            let videoConversation = new VideoConversation(call.getUuid(), caller.getDomain())
+                    let cancelBtn = toast.toastElement.querySelector("#cancel-button")
+                    cancelBtn.onclick = () => {
+                        toast.hideToast();
+                        audio.pause()
+                        clearTimeout(timeout)
 
-                            // append it to the workspace.
-                            document.appendChild(videoConversation)
+                        // Here I will send miss call event...
+                        Backend.getGlobule(caller.getDomain()).eventHub.publish(call.getUuid() + "_miss_call_evt", call.serializeBinary(), false)
+                        if (caller.getDomain() != callee.getDomain())
+                            Backend.getGlobule(callee.getDomain()).eventHub.publish(call.getUuid() + "_miss_call_evt", call.serializeBinary(), false)
 
-                            Backend.getGlobule(caller.getDomain()).eventHub.publish(call.getUuid() + "_answering_call_evt", call.serializeBinary(), false)
-                            if (callee.getDomain() != caller.getDomain()) {
-                                Backend.getGlobule(callee.getDomain()).eventHub.publish(call.getUuid() + "_answering_call_evt", call.serializeBinary(), false)
-                            }
+                    }
+
+                    let okBtn = toast.toastElement.querySelector("#ok-button")
+                    okBtn.onclick = () => {
+
+                        toast.hideToast();
+                        audio.pause()
+                        clearTimeout(timeout)
+
+                        // The contact has answer the call!
+                        let videoConversation = new VideoConversation(call.getUuid(), caller.getDomain())
+
+                        // append it to the workspace.
+                        document.appendChild(videoConversation)
+
+                        Backend.getGlobule(caller.getDomain()).eventHub.publish(call.getUuid() + "_answering_call_evt", call.serializeBinary(), false)
+                        if (callee.getDomain() != caller.getDomain()) {
+                            Backend.getGlobule(callee.getDomain()).eventHub.publish(call.getUuid() + "_answering_call_evt", call.serializeBinary(), false)
                         }
+                    }
 
-                        // Here the call was miss...
-                        Backend.getGlobule(caller.getDomain()).eventHub.subscribe(call.getUuid() + "_miss_call_evt", uuid => { }, evt => {
+                    // Here the call was miss...
+                    Backend.getGlobule(caller.getDomain()).eventHub.subscribe(call.getUuid() + "_miss_call_evt", uuid => { }, evt => {
 
-                            clearTimeout(timeout)
+                        clearTimeout(timeout)
 
-                            // The contact has answer the call!
-                            audio.pause()
-                            toast.hideToast();
-                        }, false)
-                    }, err => ApplicationView.displayMessage(err, 3000))
-
+                        // The contact has answer the call!
+                        audio.pause()
+                        toast.hideToast();
+                    }, false)
 
 
                 })
@@ -307,6 +318,8 @@ export class ContactList extends HTMLElement {
 
     onCallContact(contact) {
 
+        console.log("Call contact: ", contact)
+        
         let call = new Call()
         call.setUuid(randomUUID())
         call.setCallee(contact.getId() + "@" + contact.getDomain())
@@ -326,8 +339,20 @@ export class ContactList extends HTMLElement {
 
                             let url = getUrl(globule)
 
+                            if (callee.ringtone == undefined) {
+                                callee.ringtone = ""
+                            }
+
                             // so here I will found the caller ringtone...
                             let path = callee.ringtone
+
+                            if (path == "") {
+                                let router = document.querySelector("globular-router")
+                                if (router) {
+                                    path = router.base + path
+                                }
+                                path += "/assets/audio/ringtone/2po2_rap.mp3"
+                            }
                             path = path.replace(globule.config.WebRoot, "")
 
                             path.split("/").forEach(item => {
@@ -337,15 +362,16 @@ export class ContactList extends HTMLElement {
                                 }
                             })
 
-                            if (localStorage.getItem("user_token") != undefined) {
-                                url += "?token=" + token
+                            let layout = document.querySelector("globular-app-layout")
+                            if (layout) {
+                                url += `?application=${layout.getAttribute("application")}`
                             }
 
                             let audio = new Audio(url)
                             audio.setAttribute("loop", "true")
                             audio.setAttribute("autoplay", "true")
                             let name = caller.getName()
-                            if(callee.getFirstname().length >  0 && callee.getLastname().length > 0){
+                            if (callee.getFirstname().length > 0 && callee.getLastname().length > 0) {
                                 name = callee.getFirstname() + " " + callee.getLastname()
                             }
 
@@ -429,7 +455,7 @@ export class ContactList extends HTMLElement {
                                     notification.setNotificationType(NotificationType.USER_NOTIFICATION)
                                     notification.setMac(Backend.getGlobule(contact.getDomain()).config.Mac)
                                     let name = AccountController.account.getName()
-                                    if(AccountController.account.getFirstname().length >  0 && AccountController.account.getLastname().length > 0){
+                                    if (AccountController.account.getFirstname().length > 0 && AccountController.account.getLastname().length > 0) {
                                         name = AccountController.account.getFirstname() + " " + AccountController.account.getLastname()
                                     }
                                     let date = new Date()

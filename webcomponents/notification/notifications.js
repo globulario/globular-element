@@ -1,9 +1,9 @@
-import { Backend, displayError, displayMessage } from "../../backend/backend";
+import { Backend, displayError, displayMessage, generatePeerToken } from "../../backend/backend";
 import '@polymer/iron-icon/iron-icon.js';
 import '@polymer/iron-icons/iron-icons.js';
 import '@polymer/iron-icons/social-icons.js';
 
-import { Notification, NotificationType } from "globular-web-client/resource/resource_pb";
+import { ClearNotificationsByTypeRqst, Notification, NotificationType } from "globular-web-client/resource/resource_pb";
 import { AccountController } from "../../backend/account";
 import { NotificationEditor } from "./notificationEditor";
 import { NotificationController } from "../../backend/notification";
@@ -224,12 +224,12 @@ export class NotificationsPanel extends HTMLElement {
         15000 // 15 sec...
       );
 
-      let yesBtn = this.shadowRoot.querySelector("#yes-delete-notification");
-      let noBtn = this.shadowRoot.querySelector("#no-delete-notification");
+      let yesBtn = toast.toastElement.querySelector("#yes-delete-notification");
+      let noBtn = toast.toastElement.querySelector("#no-delete-notification");
 
       yesBtn.addEventListener('click', () => {
-        let rqst = new resource_pb.ClearNotificationsByTypeRqst();
-        rqst.setNotificationType(resource_pb.NotificationType.USER_NOTIFICATION);
+        let rqst = new ClearNotificationsByTypeRqst();
+        rqst.setNotificationType(NotificationType.USER_NOTIFICATION);
         rqst.setRecipient(AccountController.account.getId() + "@" + AccountController.account.getDomain());
 
         let globule = Backend.getGlobule(AccountController.account.getDomain());
@@ -311,7 +311,6 @@ export class NotificationsPanel extends HTMLElement {
     Backend.eventHub.subscribe(Backend.application + "_notification_event",
       (uuid) => { },
       (evt) => {
-        this.setNotificationCount();
         let notification = Notification.deserializeBinary(Uint8Array.from(evt.split(",")));
         this.appendNofication(this.applicationNotificationsPanel, notification);
         if (!this.applicationNotificationsCollapse.opened) {
@@ -329,7 +328,6 @@ export class NotificationsPanel extends HTMLElement {
         if (!this.userNotificationsCollapse.opened) {
           this.userNotificationsCollapse.toggle();
         }
-        this.setNotificationCount();
       }, false);
 
     Backend.getGlobule(AccountController.account.getDomain()).eventHub.subscribe(AccountController.account.getId() + "@" + AccountController.account.getDomain() + "_clear_user_notifications_evt",
@@ -481,17 +479,12 @@ export class NotificationsPanel extends HTMLElement {
         let toast = displayMessage(notificationDiv_.outerHTML, 15000);
 
         let div = toast.toastElement.querySelector(`#div_${notification.getId()}_text`);
-        toast.toastElement.style.minWidth = "200px";
-        toast.toastElement.style.maxWidth = "320px";
-        toast.toastElement.style.marginLeft = "10px";
-        toast.toastElement.style.marginRight = "30px";
         div.style.maxHeight = "350px";
         div.style.overflowY = "auto";
         div.style.minWidth = "200px";
         div.style.maxWidth = "320px";
         div.style.marginLeft = "10px";
         div.style.marginRight = "30px";
-        div.style.maxHeight = "350px";
         div.style.overflowY = "auto";
         let closeBtn = toast.toastElement.querySelector(`#div_${notification.getId()}_close_btn`);
         closeBtn.style.right = "-5px";
@@ -503,7 +496,7 @@ export class NotificationsPanel extends HTMLElement {
           }
           toast.hideToast();
         });
-        
+
       }
     } else if (notification.getNotificationType() == NotificationType.USER_NOTIFICATION) {
       this.userNotificationsDiv.style.display = "";
@@ -607,8 +600,14 @@ class NotificationMenu extends HTMLElement {
     // listen to custom event new-notification
     document.addEventListener("new-notification", (evt) => {
       this.unreadCount++;
+      this.notificationCount = this.shadowRoot.querySelector('.badge');
+      if(this.notificationCount == null) {
+        return;
+      }
+
       this.notificationCount.textContent = this.unreadCount;
       this.notificationCount.style.display = "flex";
+
     });
 
     // init on custom event backend-ready...
@@ -635,6 +634,7 @@ class NotificationMenu extends HTMLElement {
         // get the new_notification class and count the number of notifications.
         let new_notifications = document.querySelectorAll(".new_notification");
         this.unreadCount = new_notifications.length;
+        this.notificationCount = this.shadowRoot.querySelector('.badge');
         this.notificationCount.textContent = this.unreadCount;
 
         if (this.unreadCount > 0) {
@@ -651,6 +651,7 @@ class NotificationMenu extends HTMLElement {
 
     });
 
+    this.render();
 
   }
 

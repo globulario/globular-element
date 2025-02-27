@@ -119,7 +119,7 @@ export class ContactCard extends HTMLElement {
                 </div>
             </div>
             <globular-session-state account="${this.contact.getId() + "@" + this.contact.getDomain()}"></globular-session-state>
-            <globular-ringtones dir="audio/ringtone" id="${this.contact.getId() + "_" + this.contact.getDomain() + "_ringtone"}" account="${this.contact.getId() + "@" + this.contact.getDomain()}"></globular-ringtones>
+            <globular-ringtones dir="assets/audio/ringtone" id="${this.contact.getId() + "_" + this.contact.getDomain() + "_ringtone"}" account="${this.contact.getId() + "@" + this.contact.getDomain()}"></globular-ringtones>
             <div class="actions-div">
                 <slot></slot>
             </div>

@@ -4,16 +4,13 @@ import "@polymer/paper-radio-group/paper-radio-group.js";
 import { Backend, displayMessage, displayError, generatePeerToken, getUrl } from "../backend/backend";
 import getUuidByString from "uuid-by-string";
 import { GrapesEditor } from "./grapeJS/grape";
-import s from "@editorjs/raw";
 import { createDir, deleteDir, deleteFile, readDir, uploadFiles } from "globular-web-client/api";
 import { html as beautify } from 'js-beautify';
 import prettify from 'html-prettify'
 import { MoveRequest } from "globular-web-client/file/file_pb";
 import { FileExplorer } from "./fileExplorer/fileExplorer";
 import { DeleteDocumentRequest, IndexJsonObjectRequest, SearchDocumentsRequest } from "globular-web-client/search/search_pb";
-import { result } from "lodash";
-import { randomUUID } from "./utility";
-import { edit } from "brace";
+
 
 
 /**
@@ -554,6 +551,11 @@ class GlobularWebpageManager extends HTMLElement {
         const name = file.getName();
         const path = file.getPath();
 
+        // Skip hidden files and directories
+        if(name.startsWith("_")) {
+          continue;
+        }
+
         // Fetch the parent directory...
         const subAttributes = attributes[name] || {};
 
@@ -830,6 +832,12 @@ class GlobularWebpageManager extends HTMLElement {
   }
 
   async fetchAttributes(dirPath) {
+
+    // Here I will test if the dir that contain infos.json has '_' prefix if is the case I will not fetch the attributes
+    if (dirPath.split("/").pop().startsWith("_")) {
+      return {};
+    }
+
     /** */
     const attributesPath = `${dirPath}/infos.json`;
     try {
