@@ -6,7 +6,7 @@ import { TitleController } from "../../backend/title";
 import { AccountController } from "../../backend/account";
 import { ConvertVideoToHlsRequest, ConvertVideoToMpeg4H264Request, CreateVideoPreviewRequest, CreateVideoTimeLineRequest, StartProcessVideoRequest, UploadVideoRequest } from "globular-web-client/media/media_pb.js";
 import { CopyRequest, DeleteDirRequest, GetPublicDirsRequest, MoveRequest, RemovePublicDirRequest, UploadFileRequest } from "globular-web-client/file/file_pb.js";
-import { AssociateFileWithTitleRequest, CreateTitleRequest, CreateVideoRequest, Poster, Publisher, Video, Title} from "globular-web-client/title/title_pb.js";
+import { AssociateFileWithTitleRequest, CreateTitleRequest, CreateVideoRequest, Poster, Publisher, Video, Title } from "globular-web-client/title/title_pb.js";
 import { DownloadTorrentRequest } from "globular-web-client/torrent/torrent_pb.js";
 import { deleteDir, deleteFile, downloadFileHttp, renameFile } from "globular-web-client/api.js";
 import getUuidByString from "uuid-by-string";
@@ -59,7 +59,7 @@ export class FilesView extends HTMLElement {
         <globular-dropdown-menu-item  id="file-infos-menu-item" icon="icons:info" text="File Infos" action=""> </globular-dropdown-menu-item>
         <globular-dropdown-menu-item  id="title-infos-menu-item" icon="icons:info" text="Title Infos" action="" style="display: none;"> </globular-dropdown-menu-item>
         <globular-dropdown-menu-item  id="manage-acess-menu-item" icon="folder-shared" text="Manage access" action=""></globular-dropdown-menu-item>
-        <globular-dropdown-menu-item  id="refresh-infos-menu-item" icon="icons:refresh" text="Refresh infos" action="" style="display: none;"></globular-dropdown-menu-item>
+        <globular-dropdown-menu-item  id="refresh-infos-menu-item" icon="icons:refresh" text="Refresh infos" title="convert media format to mp4 and fix audio to correct codec. Generate timeline and preview." action="" style="display: none;"></globular-dropdown-menu-item>
         <globular-dropdown-menu-item separator="true" id="video-menu-item" icon="maps:local-movies" text="Movies" action="" style="display: none;"> 
             <globular-dropdown-menu>
                 <globular-dropdown-menu-item id="generate-timeline-menu-item" icon="maps:local-movies" text="generate timeline" action=""> </globular-dropdown-menu-item>
@@ -83,7 +83,7 @@ export class FilesView extends HTMLElement {
         this.menu.className = "file-dropdown-menu"
         this.menu.innerHTML = menuItemsHTML
 
-        this.videMenuItem = this.menu.querySelector("#video-menu-item")
+        this.videoMenuItem = this.menu.querySelector("#video-menu-item")
         this.fileInfosMenuItem = this.menu.querySelector("#file-infos-menu-item")
         this.titleInfosMenuItem = this.menu.querySelector("#title-infos-menu-item")
         this.refreshInfoMenuItem = this.menu.querySelector("#refresh-infos-menu-item")
@@ -106,52 +106,45 @@ export class FilesView extends HTMLElement {
         this.pasteMenuItem = this.menu.querySelector("#paste-menu-item")
 
 
-        // Action to do when file is set
-        this.menu.setFile = (f) => {
+        // Action to do when a file is set
+        this.menu.setFile = (file) => {
+            this.menu.file = file;
+            const mime = file.getMime();
+            const name = file.getName();
 
-            this.menu.file = f;
-            if (this.menu.file.getMime().startsWith("video") || this.menu.file.videos != undefined || this.menu.file.titles != undefined || this.menu.file.getIsDir()) {
-                this.titleInfosMenuItem.style.display = "block"
-                if (this.menu.file.getMime().startsWith("video")) {
-                    this.videMenuItem.style.display = "block"
-                    this.openInNewTabItem.style.display = "block"
-                    this.generateTimeLineItem.style.display = "block"
-                    this.generatePreviewItem.style.display = "block"
+            // Hide all menu items by default
+            this.videoMenuItem.style.display = "none";
+            this.titleInfosMenuItem.style.display = "none";
+            this.toHlsMenuItem.style.display = "none";
+            this.toMp4MenuItem.style.display = "none";
+            this.generateTimeLineItem.style.display = "none";
+            this.generatePreviewItem.style.display = "none";
+            this.openInNewTabItem.style.display = "none";
+            this.refreshInfoMenuItem.style.display = "none";
 
+            if (mime.startsWith("video")) {
+                this.titleInfosMenuItem.style.display = "block";
+                this.videoMenuItem.style.display = "block";
+                this.openInNewTabItem.style.display = "block";
+                this.generateTimeLineItem.style.display = "block";
+                this.generatePreviewItem.style.display = "block";
 
-                    if (this.menu.file.getName().endsWith(".mp4") || this.menu.file.getName().endsWith(".MP4")) {
-                        this.toHlsMenuItem.style.display = "block"
-                        this.toMp4MenuItem.style.display = "none"
-                    } else if (this.menu.file.mime == "video/hls-stream") {
-                        this.toHlsMenuItem.style.display = "none"
-                        this.toMp4MenuItem.style.display = "none"
-                    } else {
-                        this.toHlsMenuItem.style.display = "none"
-                        this.toMp4MenuItem.style.display = "block"
-                    }
-                }
-            } else {
-                this.videMenuItem.style.display = "none"
-
-                if (this.menu.file.getMime().startsWith("audio")) {
-                    this.titleInfosMenuItem.style.display = "block"
+                if (name.toLowerCase().endsWith(".mp4")) {
+                    this.toHlsMenuItem.style.display = "block";
+                } else if (mime === "video/hls-stream") {
+                    // No conversion options for HLS streams
                 } else {
-                    this.titleInfosMenuItem.style.display = "none"
+                    this.toMp4MenuItem.style.display = "block";
                 }
-
-                if (this.menu.file.getIsDir()) {
-                    this.refreshInfoMenuItem.style.display = "block"
-                    this.videMenuItem.style.display = "block"
-                    this.toHlsMenuItem.style.display = "block"
-                    this.toMp4MenuItem.style.display = "block"
-                    this.generateTimeLineItem.style.display = "none"
-                    this.generatePreviewItem.style.display = "none"
-                }
-
-
-                this.openInNewTabItem.style.display = "none"
+            } else if (mime.startsWith("audio") || file.videos || file.titles) {
+                this.titleInfosMenuItem.style.display = "block";
             }
-        }
+
+            if (file.getIsDir()) {
+                this.refreshInfoMenuItem.style.display = "block";
+            }
+        };
+
 
         this.refreshInfoMenuItem.action = () => {
             let rqst = new StartProcessVideoRequest
@@ -1306,6 +1299,7 @@ export class FilesView extends HTMLElement {
                 if (this._file_explorer_.id == evt.file_explorer_id) {
                     if (evt.dir) {
                         this.__dir__ = evt.dir
+                        this.menu.setFile(evt.dir)
                         this.setDir(evt.dir)
                     }
                 }

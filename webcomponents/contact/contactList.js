@@ -181,7 +181,7 @@ export class ContactList extends HTMLElement {
                         let videoConversation = new VideoConversation(call.getUuid(), caller.getDomain())
 
                         // append it to the workspace.
-                        document.appendChild(videoConversation)
+                        document.body.appendChild(videoConversation)
 
                         Backend.getGlobule(caller.getDomain()).eventHub.publish(call.getUuid() + "_answering_call_evt", call.serializeBinary(), false)
                         if (callee.getDomain() != caller.getDomain()) {
@@ -429,7 +429,7 @@ export class ContactList extends HTMLElement {
                                 let videoConversation = new VideoConversation(call.getUuid(), AccountController.account.getDomain())
 
                                 // append it to the workspace.
-                                document.appendChild(videoConversation)
+                                document.body.appendChild(videoConversation)
 
 
                                 // start the video conversation.
