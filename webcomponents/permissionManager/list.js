@@ -137,17 +137,20 @@ export class SearchableAccountList extends SearchableList {
 
     createAccountDiv(account) {
         let uuid = "_" + getUuidByString(account.getId());
-
+        let name = account.getName()
+        if(account.getFirstname().length > 0 && account.getLastname().length > 0){
+            name = account.getFirstname() + " " + account.getLastname()
+        }
 
         let html = `
         <style>
         </style>
         <div id="${uuid}" class="item-div" style="">
             <div style="display: flex; align-items: center; padding: 5px; width: 100%;"> 
-                <img style="width: 40px; height: 40px; display: ${account.getProfilepicture().length == 0 ? "none" : "block"};" src="${account.getProfilepicture()}"></img>
+                <img style="width: 40px; height: 40px; border-radius: 50%; display: ${account.getProfilepicture().length == 0 ? "none" : "block"};" src="${account.getProfilepicture()}"></img>
                 <iron-icon icon="account-circle" style="width: 40px; height: 40px; --iron-icon-fill-color:var(--palette-action-disabled); display: ${account.getProfilepicture().length != 0 ? "none" : "block"};"></iron-icon>
                 <div style="display: flex; flex-direction: column; width:200px; font-size: .85em; padding-left: 8px; flex-grow: 1;">
-                    <span>${account.getId() + "@" + account.getDomain()}</span>
+                    <span>${name}</span>
                 </div>
                 <paper-icon-button icon="delete" id="${account.getId()}_btn"></paper-icon-button>
             </div>
@@ -333,7 +336,7 @@ export class SearchableApplicationList extends SearchableList {
         </style>
         <div id="${uuid}" class="item-div" style="">
             <div style="display: flex; align-items: center; padding: 5px; width: 100%;"> 
-                <img style="width: 40px; height: 40px; display: ${application.getIcon() == undefined ? "none" : "block"};" src="${application.getIcon()}"></img>
+                <img style="width: 40px; height: 40px; border-radius: 50%; display: ${application.getIcon() == undefined ? "none" : "block"};" src="${application.getIcon()}"></img>
                 <iron-icon icon="account-circle" style="width: 40px; height: 40px; --iron-icon-fill-color:var(--palette-action-disabled); display: ${application.getIcon() != undefined ? "none" : "block"};"></iron-icon>
                 <div style="display: flex; flex-direction: column; width:200px; font-size: .85em; padding-left: 8px; flex-grow: 1;">
                     <span>${application.getAlias() + "@" + application.getDomain()}</span>
