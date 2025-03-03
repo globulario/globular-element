@@ -4,6 +4,7 @@ import { ApplicationController } from "../../backend/applications"
 import { PeerController } from "../../backend/peer"
 import { SearchableList } from "../list.js"
 import { Backend } from "../../backend/backend"
+import { Autocomplete } from "../autocomplete.js"
 
 /**
  * Searchable Account list
@@ -137,17 +138,14 @@ export class SearchableAccountList extends SearchableList {
     createAccountDiv(account) {
         let uuid = "_" + getUuidByString(account.getId());
 
-        if(account.profile_picture == undefined){
-            account.profile_picture = ""
-        }
 
         let html = `
         <style>
         </style>
         <div id="${uuid}" class="item-div" style="">
             <div style="display: flex; align-items: center; padding: 5px; width: 100%;"> 
-                <img style="width: 40px; height: 40px; display: ${account.profile_picture.length == 0 ? "none" : "block"};" src="${account.profile_picture}"></img>
-                <iron-icon icon="account-circle" style="width: 40px; height: 40px; --iron-icon-fill-color:var(--palette-action-disabled); display: ${account.profile_picture.length != 0 ? "none" : "block"};"></iron-icon>
+                <img style="width: 40px; height: 40px; display: ${account.getProfilepicture().length == 0 ? "none" : "block"};" src="${account.getProfilepicture()}"></img>
+                <iron-icon icon="account-circle" style="width: 40px; height: 40px; --iron-icon-fill-color:var(--palette-action-disabled); display: ${account.getProfilepicture().length != 0 ? "none" : "block"};"></iron-icon>
                 <div style="display: flex; flex-direction: column; width:200px; font-size: .85em; padding-left: 8px; flex-grow: 1;">
                     <span>${account.getId() + "@" + account.getDomain()}</span>
                 </div>

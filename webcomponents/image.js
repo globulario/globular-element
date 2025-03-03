@@ -889,6 +889,9 @@ export class ImageViewer extends HTMLElement {
     for (var i = 0; i < cant; i++) {
       ch[i].style.display = 'none';
     }
+    if(ch[index] == undefined) {
+      return;
+    }
     ch[index].style.display = 'block';
     this.shadowRoot.querySelector('#counter').innerHTML = (index + 1) + '/' + (cant);
     this.index = index;

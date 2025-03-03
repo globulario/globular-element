@@ -495,9 +495,7 @@ export class ContactList extends HTMLElement {
                             Backend.getGlobule(contact.getDomain()).eventHub.publish("calling_" + contact.getId() + "@" + contact.getDomain() + "_evt", call.serializeBinary(), false)
 
                         })
-
-
-
+                        
                     }, err => displayError(err, 3000))
 
                 }, err => displayError(err, 3000))

@@ -493,7 +493,6 @@ export class GrapesEditor extends HTMLElement {
                     this.editor.on('load', () => {
                         const iframeDoc = this.editor.Canvas.getDocument(); // Access the iframe document directly
                         iframeDoc.body.style.fontFamily = 'Arial, sans-serif';
-                        iframeDoc.body.style.overflow = 'hidden';
 
                         if (this.onload) {
                             this.onload(iframeDoc);

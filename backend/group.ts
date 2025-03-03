@@ -1,8 +1,9 @@
 
-import { GetGroupsRqst, Group } from "globular-web-client/resource/resource_pb"
+import { Account, Account, GetGroupsRqst, Group } from "globular-web-client/resource/resource_pb"
 import { Backend } from "./backend"
 import { Globular } from "globular-web-client";
 import { getAllGroups } from "globular-web-client/api";
+import { AccountController } from "./account";
 
 export class GroupController {
 
@@ -10,11 +11,10 @@ export class GroupController {
     private static groups: any;
 
     // Return the list of all groups.
-    static getGroups(globule: Globular, callback: (callback: Group[]) => void, errorCallback: (err: any) => void) {
+    static getGroups(callback: (callback: Group[]) => void, errorCallback: (err: any) => void, globule: Globular = Backend.globular) {
 
         getAllGroups(globule, groups => {
             callback(groups)
-
         }, errorCallback);
     }
 
@@ -73,5 +73,23 @@ export class GroupController {
             });
 
         }
+    }
+
+
+    static getMembers(id: string, successCallback: (members: Array<Account>) => void, errorCallback: (err: any) => void) {
+        GroupController.getGroup(id, group => {
+            let membersList = group.getMembersList()
+            let members = new Array<Account>() 
+            membersList.forEach(member => {
+                AccountController.getAccount(member, account => {
+                    members.push(account)
+                    if (members.length == membersList.length) {
+                        successCallback(members)
+                    }
+                }
+                , errorCallback)
+            })
+
+        }, errorCallback)
     }
 }

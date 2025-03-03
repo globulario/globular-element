@@ -166,15 +166,19 @@ export class PermissionsViewer extends HTMLElement {
 
     createAccountDiv(account) {
         let uuid = "_" + uuidv4();
+        let name = account.getName()
+        if(account.getFirstname().length > 0 && account.getLastname().length > 0){
+            name = account.getFirstname() + " " + account.getLastname()
+        }
         let html = `
         <style>
         </style>
         <div id="${uuid}" class="item-div" style="">
             <div style="display: flex; align-items: center; padding: 5px; width: 100%;"> 
-                <img style="width: 40px; height: 40px; display: ${account.profile_picture.length == 0 ? "none" : "block"};" src="${account.profile_picture}"></img>
-                <iron-icon icon="account-circle" style="width: 40px; height: 40px; --iron-icon-fill-color:var(--palette-action-disabled); display: ${account.profile_picture.length != 0 ? "none" : "block"};"></iron-icon>
+                <img style="width: 40px; height: 40px; border-radius: 50%; display: ${account.getProfilepicture().length == 0 ? "none" : "block"};" src="${account.getProfilepicture()}"></img>
+                <iron-icon icon="account-circle" style="width: 40px; height: 40px; border-radius: 50%; --iron-icon-fill-color:var(--palette-action-disabled); display: ${account.getProfilepicture().length != 0 ? "none" : "block"};"></iron-icon>
                 <div style="display: flex; flex-direction: column; width:250px; font-size: .85em; padding-left: 8px;">
-                    <span>${account.getName()}</span>
+                    <span>${name}</span>
                     <span>${account.getEmail()}</span>
                 </div>
             </div>
@@ -198,8 +202,8 @@ export class PermissionsViewer extends HTMLElement {
         </style>
         <div id="${uuid}" class="item-div" style="">
             <div style="display: flex; align-items: center; padding: 5px; width: 100%;"> 
-                <img style="width: 40px; height: 40px; display: ${application.getIcon() == undefined ? "none" : "block"};" src="${application.getIcon()}"></img>
-                <iron-icon icon="account-circle" style="width: 40px; height: 40px; --iron-icon-fill-color:var(--palette-action-disabled); display: ${application.getIcon() != undefined ? "none" : "block"};"></iron-icon>
+                <img style="width: 40px; height: 40px;border-radius: 50%;display: ${application.getIcon() == undefined ? "none" : "block"};" src="${application.getIcon()}"></img>
+                <iron-icon icon="account-circle" style="width: 40px; height: 40px; border-radius: 50%; --iron-icon-fill-color:var(--palette-action-disabled); display: ${application.getIcon() != undefined ? "none" : "block"};"></iron-icon>
                 <div style="display: flex; flex-direction: column; width:250px; font-size: .85em; padding-left: 8px;">
                     <span>${application.getAlias()}</span>
                     <span>${application.getVersion()}</span>
@@ -221,7 +225,7 @@ export class PermissionsViewer extends HTMLElement {
             </style>
             <div id="${uuid}" class="item-div" style="">
                 <div style="display: flex; align-items: center; padding: 5px; width: 100%;"> 
-                    <iron-icon icon="social:domain" style="width: 40px; height: 40px; --iron-icon-fill-color:var(--palette-action-disabled); display:block"};"></iron-icon>
+                    <iron-icon icon="social:domain" style="width: 40px; height: 40px; border-radius: 50%; --iron-icon-fill-color:var(--palette-action-disabled); display:block"};"></iron-icon>
                     <div style="display: flex; flex-direction: column; width:250px; font-size: .85em; padding-left: 8px;">
                         <span>${organization.getId() + "@" + organization.getDomain()}</span>
                     </div>
@@ -241,7 +245,7 @@ export class PermissionsViewer extends HTMLElement {
             </style>
             <div id="${uuid}" class="item-div" style="">
                 <div style="display: flex; align-items: center; padding: 5px; width: 100%;"> 
-                    <iron-icon icon="hardware:computer" style="width: 40px; height: 40px; --iron-icon-fill-color:var(--palette-action-disabled); display:block"};"></iron-icon>
+                    <iron-icon icon="hardware:computer" style="width: 40px; height: 40px; border-radius: 50%; --iron-icon-fill-color:var(--palette-action-disabled); display:block"};"></iron-icon>
                     <div style="display: flex; flex-direction: column; width:250px; font-size: .85em; padding-left: 8px;">
                         <span>${peer.getHostname()+ "." + peer.getDomain()} (${peer.getMac()})</span>
                     </div>
@@ -261,7 +265,7 @@ export class PermissionsViewer extends HTMLElement {
         </style>
         <div id="${uuid}" class="item-div" style="">
             <div style="display: flex; align-items: center; padding: 5px; width: 100%;"> 
-                <iron-icon icon="social:people" style="width: 40px; height: 40px; --iron-icon-fill-color:var(--palette-action-disabled); display:block"};"></iron-icon>
+                <iron-icon icon="social:people" style="width: 40px; height: 40px; border-radius: 50%; --iron-icon-fill-color:var(--palette-action-disabled); display:block"};"></iron-icon>
                 <div style="display: flex; flex-direction: column; width:250px; font-size: .85em; padding-left: 8px;">
                     <span>${group.id + "@" + group.domain}</span>
                 </div>

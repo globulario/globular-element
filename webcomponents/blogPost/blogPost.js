@@ -685,8 +685,8 @@ export class BlogPostElement extends HTMLElement {
         AccountController.getAccount(blog.getAuthor(), a => {
             let img = this.shadowRoot.querySelector("#blog-reader-author-blog-post")
             let ico = this.shadowRoot.querySelector("#blog-reader-author-icon")
-            if (a.profile_picture != undefined) {
-                img.src = a.profile_picture
+            if (a.getProfilepicture() != undefined) {
+                img.src = a.getProfilepicture()
                 img.style.display = "block"
                 ico.style.display = "none"
             }

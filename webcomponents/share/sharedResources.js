@@ -62,8 +62,6 @@ export class SharedResources extends HTMLElement {
                 margin-left: 15px;
             }
 
-
-
             /* Need to position the badge to look like a text superscript */
             paper-tab {
               padding-right: 25px;

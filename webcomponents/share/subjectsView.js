@@ -1,5 +1,9 @@
 import getUuidByString from "uuid-by-string"
 import { AccountController } from "../../backend/account";
+import { GroupController } from "../../backend/group";
+import { displayError } from "../../backend/backend";
+import { fireResize } from "../utility";
+
 
 
 /**
@@ -348,19 +352,23 @@ export class GlobularSubjectsView extends HTMLElement {
         }
 
         // So here I will initialyse the list of accounts...
-        Account.getAccounts("{}", false, accounts => {
+        AccountController.getAccounts("{}", false, accounts => {
             let range = document.createRange()
             let count = 0
 
             accounts.forEach(a => {
                 accountsSelector.style.display = ""
-                if (a.id != "sa" && a.id != this.account.getId()) {
-                    let uuid = "_" + getUuidByString(a.id + "@" + a.domain)
+                if (a.getId() != "sa" && a.getId() != this.account.getId()) {
+                    let name = a.getName()
+                    if(a.getFirstname().length > 0 && a.getLastname().length > 0){
+                        name = a.getFirstname() + " " + a.getLastname()
+                    }
+                    let uuid = "_" + getUuidByString(a.getId() + "@" + a.getDomain())
                     let html = `
                         <div id="${uuid}" class="infos">
-                            <img style="width: 32px; height: 32px; display: ${a.profile_picture.length == 0 ? "none" : "block"};" src="${a.profile_picture}"></img>
-                            <iron-icon icon="account-circle" style="width: 32px; height: 32px; --iron-icon-fill-color:var(--palette-action-disabled); display: ${a.profile_picture.length > 0 ? "none" : "block"};"></iron-icon>
-                            <span>${a.id}</span>
+                            <img style="width: 32px; height: 32px; display: ${a.getProfilepicture().length == 0 ? "none" : "block"};" src="${a.getProfilepicture()}"></img>
+                            <iron-icon icon="account-circle" style="width: 32px; height: 32px; --iron-icon-fill-color:var(--palette-action-disabled); display: ${a.getProfilepicture().length > 0 ? "none" : "block"};"></iron-icon>
+                            <span>${name}</span>
                         </div>
                         `
                     let fragment = range.createContextualFragment(html)
@@ -405,10 +413,10 @@ export class GlobularSubjectsView extends HTMLElement {
             accountsSelector.click() // display list of account'(s)
 
 
-        }, err => {displayMessage("fail to retreive accounts with error: ", err); console.log("1666---------->", err)})
+        }, err => {displayError("fail to retreive accounts with error: ", err)})
 
         // Now the groups.
-        Group.getGroups(groups => {
+        GroupController.getGroups(groups => {
             let range = document.createRange()
             groupsCount.innerHTML = `(${groups.length})`
             // init groups...
@@ -428,15 +436,21 @@ export class GlobularSubjectsView extends HTMLElement {
                             </div>
                         `
 
-                    g.getMembers(members => {
+
+
+                    GroupController.getMembers(g.getId(), members => {
                         html += `<div class="group-members" style="display: flex;">`
                         members.forEach(a => {
+                            let name = a.getName()
+                            if(a.getFistname().length > 0 && a.getLastname().length > 0){  
+                                name = a.getFistname() + " " + a.getLastname()
+                            }
                             let uuid = "_" + getUuidByString(a.getId() + "@" + a.getDomain())
                             html += `
                             <div id="${uuid}" class="infos">
-                                <img style="width: 32px; height: 32px; display: ${a.profile_picture.length == 0 ? "none" : "block"};" src="${a.profile_picture}"></img>
-                                <iron-icon icon="account-circle" style="width: 32px; height: 32px; --iron-icon-fill-color:var(--palette-action-disabled); display: ${a.profile_picture.length > 0 ? "none" : "block"};"></iron-icon>
-                                <span>${a.name}</span>
+                                <img style="width: 32px; height: 32px; display: ${a.getProfilepicture().length == 0 ? "none" : "block"};" src="${a.getProfilepicture()}"></img>
+                                <iron-icon icon="account-circle" style="width: 32px; height: 32px; --iron-icon-fill-color:var(--palette-action-disabled); display: ${a.getProfilepicture().length > 0 ? "none" : "block"};"></iron-icon>
+                                <span>${name}</span>
                             </div>
                             `
                         })
@@ -486,7 +500,7 @@ export class GlobularSubjectsView extends HTMLElement {
 
             let index = 0;
             getGroup(index)
-        }, err => displayError(err, 3000);)
+        }, err => displayError(err, 3000))
 
         // TODO the applications and the organizations
         fireResize()

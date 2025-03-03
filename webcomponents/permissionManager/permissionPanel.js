@@ -291,7 +291,7 @@ export class PermissionPanel extends HTMLElement {
 
         let content = this.createCollapsible(`Groups(${groups_.length})`)
 
-        GroupController.getGroups(this.permissionManager.globule,
+        GroupController.getGroups(
             groups => {
                 // I will get the account object whit the given id.
                 let list = []
@@ -337,7 +337,7 @@ export class PermissionPanel extends HTMLElement {
                 groupsList.hideTitle()
                 content.appendChild(groupsList)
 
-            }), err => displayError(err, 3000);
+            }, err => displayError(err, 3000), this.permissionManager.globule);
 
     }
 

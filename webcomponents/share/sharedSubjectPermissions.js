@@ -1,3 +1,5 @@
+import { Permission } from "globular-web-client/rbac/rbac_pb"
+import { Account, Group } from "globular-web-client/resource/resource_pb"
 import getUuidByString from "uuid-by-string"
 
 
@@ -131,7 +133,11 @@ export class SharedSubjectsPermissions extends HTMLElement {
         let range = document.createRange()
 
         let setSubjectRow = (s) => {
-            let uuid = "_" + getUuidByString(s.id + "@" + s.domain)
+            let name = s.getName()
+            if(s.getFirstname().length > 0 && s.getLastname().length > 0){
+                name = s.getFirstname() + " " + s.getLastname()
+            }
+            let uuid = "_" + getUuidByString(s.getId() + "@" + s.getDomain())
             let html = `
             <style>
                 iron-icon:hover{
@@ -158,7 +164,7 @@ export class SharedSubjectsPermissions extends HTMLElement {
                     <div id="${uuid}" class="infos">
                         <img> </img>
                         <iron-icon id="group-icon"></iron-icon>
-                        <span>${s.name}</span>
+                        <span>${name}</span>
                     </div>
                 </div>
                 <div class="cell">
@@ -197,8 +203,8 @@ export class SharedSubjectsPermissions extends HTMLElement {
             let row = permissions.querySelector("#" + uuid + "_row")
             row.subject = s
             row.style.display = "table-row"
-            if (s.profile_picture) {
-                row.querySelector("img").src = s.profile_picture
+            if (s.getProfilepicture()) {
+                row.querySelector("img").src = s.getProfilepicture()
                 row.querySelector("#group-icon").style.display = "none"
             } else {
                 row.querySelector("img").style.display = "none"
@@ -257,24 +263,24 @@ export class SharedSubjectsPermissions extends HTMLElement {
             /** The read permission */
             if (icons[0].icon == "icons:check") {
                 if (row.subject instanceof Account) {
-                    let accountId = row.subject.id + "@" + row.subject.domain
+                    let accountId = row.subject.getId() + "@" + row.subject.getDomain()
                     let lst = allowed_read_permission.getAccountsList()
                     lst.push(accountId)
                     allowed_read_permission.setAccountsList(lst)
                 } else if (row.subject instanceof Group) {
-                    let groupId = row.subject.id + "@" + row.subject.domain
+                    let groupId = row.subject.getId() + "@" + row.subject.getDomain()
                     let lst = allowed_read_permission.getGroupsList()
                     lst.push(groupId)
                     allowed_read_permission.setGroupsList(lst)
                 }
             } else if (icons[0].icon == "icons:block") {
                 if (row.subject instanceof Account) {
-                    let accountId = row.subject.id + "@" + row.subject.domain
+                    let accountId = row.subject.getId() + "@" + row.subject.getDomain()
                     let lst = denied_read_permission.getAccountsList()
                     lst.push(accountId)
                     denied_read_permission.setAccountsList(lst)
                 } else if (row.subject instanceof Group) {
-                    let groupId = row.subject.id + "@" + row.subject.domain
+                    let groupId = row.subject.getId() + "@" + row.subject.getDomain()
                     let lst = denied_read_permission.getGroupsList()
                     lst.push(groupId)
                     denied_read_permission.setGroupsList(lst)
@@ -284,24 +290,24 @@ export class SharedSubjectsPermissions extends HTMLElement {
             /** The write permission */
             if (icons[1].icon == "icons:check") {
                 if (row.subject instanceof Account) {
-                    let accountId = row.subject.id + "@" + row.subject.domain
+                    let accountId = row.subject.getId() + "@" + row.subject.getDomain()
                     let lst = allowed_write_permission.getAccountsList()
                     lst.push(accountId)
                     allowed_write_permission.setAccountsList(lst)
                 } else if (row.subject instanceof Group) {
-                    let groupId = row.subject.id + "@" + row.subject.domain
+                    let groupId = row.subject.getId() + "@" + row.subject.getDomain()
                     let lst = allowed_write_permission.getGroupsList()
                     lst.push(groupId)
                     allowed_write_permission.setGroupsList(lst)
                 }
             } else if (icons[1].icon == "icons:block") {
                 if (row.subject instanceof Account) {
-                    let accountId = row.subject.id + "@" + row.subject.domain
+                    let accountId = row.subject.getId() + "@" + row.subject.getDomain()
                     let lst = denied_write_permission.getAccountsList()
                     lst.push(accountId)
                     denied_write_permission.setAccountsList(lst)
                 } else if (row.subject instanceof Group) {
-                    let groupId = row.subject.id + "@" + row.subject.domain
+                    let groupId = row.subject.getId() + "@" + row.subject.getDomain()
                     let lst = denied_write_permission.getGroupsList()
                     lst.push(groupId)
                     denied_write_permission.setGroupsList(lst)
@@ -311,24 +317,24 @@ export class SharedSubjectsPermissions extends HTMLElement {
             /** The delete permission */
             if (icons[2].icon == "icons:check") {
                 if (row.subject instanceof Account) {
-                    let accountId = row.subject.id + "@" + row.subject.domain
+                    let accountId = row.subject.getId() + "@" + row.subject.getDomain()
                     let lst = allowed_delete_permission.getAccountsList()
                     lst.push(accountId)
                     allowed_delete_permission.setAccountsList(lst)
                 } else if (row.subject instanceof Group) {
-                    let groupId = row.subject.id + "@" + row.subject.domain
+                    let groupId = row.subject.getId() + "@" + row.subject.getDomain()
                     let lst = allowed_delete_permission.getGroupsList()
                     lst.push(groupId)
                     allowed_delete_permission.setGroupsList(lst)
                 }
             } else if (icons[2].icon == "icons:block") {
                 if (row.subject instanceof Account) {
-                    let accountId = row.subject.id + "@" + row.subject.domain
+                    let accountId = row.subject.getId() + "@" + row.subject.getDomain()
                     let lst = denied_delete_permission.getAccountsList()
                     lst.push(accountId)
                     denied_delete_permission.setAccountsList(lst)
                 } else if (row.subject instanceof Group) {
-                    let groupId = row.subject.id + "@" + row.subject.domain
+                    let groupId = row.subject.getId() + "@" + row.subject.getDomain()
                     let lst = denied_delete_permission.getGroupsList()
                     lst.push(groupId)
                     denied_delete_permission.setGroupsList(lst)

@@ -192,7 +192,6 @@ export class FileIconView extends HTMLElement {
         // set reference from view...
         this._file_explorer_ = view._file_explorer_
         this.menu = view.menu
-        this.shareResource = view.shareResource
         this.div = view.div
         this.selected = view.selected
         this.rename = view.rename
@@ -270,7 +269,6 @@ export class FileIconView extends HTMLElement {
                     }
                 })
 
-            fileIconDiv.appendChild(this.shareResource)
 
             let files = [];
             for (var key in this.selected) {
@@ -281,11 +279,6 @@ export class FileIconView extends HTMLElement {
                 files.push(file)
             }
 
-            this.shareResource.setFiles(files)
-
-            this.shareResource.style.position = "absolute"
-            this.shareResource.style.top = "0px";
-            this.shareResource.style.right = "20px";
         }
 
         fileIconDiv.onmouseleave = (evt) => {
@@ -293,10 +286,6 @@ export class FileIconView extends HTMLElement {
             let checkbox = fileIconDiv.querySelector("paper-checkbox")
             if (!checkbox.checked) {
                 checkbox.style.display = "none"
-            }
-
-            if (this.shareResource.parentNode) {
-                this.shareResource.parentNode.removeChild(this.shareResource)
             }
 
             thumbtack.style.display = "none"
@@ -591,9 +580,6 @@ export class FileIconView extends HTMLElement {
             // display the actual checkbox...
             checkbox.style.display = "block"
 
-
-            fileIconDiv.appendChild(this.shareResource)
-
             let files = [];
             for (var key in this.selected) {
                 files.push(this.selected[key])
@@ -602,12 +588,6 @@ export class FileIconView extends HTMLElement {
             if (files.filter(f => f.getPath() === file.getPath()).length == 0) {
                 files.push(file)
             }
-
-            this.shareResource.setFiles(files)
-
-            this.shareResource.style.position = "absolute"
-            this.shareResource.style.top = "0px";
-            this.shareResource.style.right = "20px";
 
             document.body.appendChild(this.menu)
 

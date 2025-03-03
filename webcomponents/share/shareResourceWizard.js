@@ -2,9 +2,14 @@ import getUuidByString from "uuid-by-string"
 import { AccountController } from "../../backend/account"
 import { Wizard } from "../wizard";
 import { randomUUID } from "../utility";
-import { Backend } from "../../backend/backend";
-import { CreateNotificationRqst, Notification } from "globular-web-client/resource/resource_pb";
-import { GetResourcePermissionsRqst, SetResourcePermissionsRqst } from "globular-web-client/rbac/rbac_pb";
+import { Backend, displayError, generatePeerToken } from "../../backend/backend";
+import { CreateNotificationRqst, Notification, NotificationType } from "globular-web-client/resource/resource_pb";
+import { GetResourcePermissionsRqst, Permissions, SetResourcePermissionsRqst } from "globular-web-client/rbac/rbac_pb";
+import { GlobularSubjectsSelected} from "./subjectsSelected";
+import { GlobularSubjectsView } from "./subjectsView";
+import { GroupController } from "../../backend/group";
+import {SharedSubjectsPermissions} from "./sharedSubjectPermissions";
+
 
 export class ShareResourceWizard extends HTMLElement {
     // attributes.
@@ -234,11 +239,10 @@ export class ShareResourceWizard extends HTMLElement {
                 // display the list of resource...
                 let getMembers = (index) => {
                     let group = groups[index]
-
-                    group.getMembers(members => {
+                    GroupController.getMembers.getMembers(group.getId(), members => {
                         // append members...
                         members.forEach(member => {
-                            if (participants.filter(p => p.id + "@" + p.domain === member.id + "@" + member.domain).length == 0) {
+                            if (participants.filter(p => p.getId() + "@" + p.getDomain() === member.getId() + "@" + member.getDomain()).length == 0) {
                                 participants.push(member)
                             }
                         })
@@ -314,10 +318,10 @@ export class ShareResourceWizard extends HTMLElement {
 
                                 notification.setDate(parseInt(Date.now() / 1000)) // Set the unix time stamp...
                                 notification.setId(randomUUID())
-                                notification.setRecipient(contact.id + "@" + contact.domain)
+                                notification.setRecipient(contact.getId() + "@" + contact.getDomain())
                                 notification.setSender(AccountController.account.getId() + "@" + AccountController.account.getDomain())
                                 notification.setNotificationType(NotificationType.USER_NOTIFICATION)
-                                notification.setMac(Backend.getGlobule(contact.domain).config.Mac)
+                                notification.setMac(Backend.getGlobule(contact.getDomain()).config.Mac)
                                 
                                 let alias = ""
                                 if(file.videos){
@@ -352,15 +356,15 @@ export class ShareResourceWizard extends HTMLElement {
                                 rqst.setNotification(notification)
 
                                 // Create the notification...
-                                let globule = Backend.getGlobule(contact.domain)
+                                let globule = Backend.getGlobule(contact.getDomain())
                                 generatePeerToken(globule, token => {
                                     globule.resourceService.createNotification(rqst, {
                                         token: token,
-                                        domain: contact.domain
+                                        domain: contact.getDomain()
                                     }).then((rsp) => {
                                         
                                         // Send notification...
-                                        Backend.getGlobule(contact.domain).eventHub.publish(contact.id + "@" + contact.domain + "_notification_event", notification.serializeBinary(), false)
+                                        Backend.getGlobule(contact.getDomain()).eventHub.publish(contact.getId() + "@" + contact.getDomain() + "_notification_event", notification.serializeBinary(), false)
                                     }).catch(err => {
                                         displayError(err, 3000);
                                         console.log(err)
@@ -402,14 +406,19 @@ export class ShareResourceWizard extends HTMLElement {
                         }
                     </style>
                     `))
+                    
 
                     participants.forEach(a => {
-                        let uuid = "_" + getUuidByString(a.id + "@" + a.domain)
+                        let name = a.name
+                        if(a.getFirstname().length > 0 && a.getLastname().length > 0){
+                            name = a.getFirstname() + " " + a.getLastname()
+                        }
+                        let uuid = "_" + getUuidByString(a.getId() + "@" + a.getDomain())
                         let html = `
                         <div id="${uuid}" class="infos">
-                            <img style="width: 32px; height: 32px; display: ${a.profile_picture.length == 0 ? "none" : "block"};" src="${a.profile_picture}"></img>
-                            <iron-icon icon="account-circle" style="width: 32px; height: 32px; --iron-icon-fill-color:var(--palette-action-disabled); display: ${a.profile_picture.length > 0 ? "none" : "block"};"></iron-icon>
-                            <span>${a.name}</span>
+                            <img style="width: 32px; height: 32px; display: ${a.getProfilepicture().length == 0 ? "none" : "block"};" src="${a.getProfilepicture()}"></img>
+                            <iron-icon icon="account-circle" style="width: 32px; height: 32px; --iron-icon-fill-color:var(--palette-action-disabled); display: ${a.getProfilepicture().length > 0 ? "none" : "block"};"></iron-icon>
+                            <span>${name}</span>
                         </div>
                         `
                         participantsDiv.appendChild(range.createContextualFragment(html))
@@ -498,7 +507,7 @@ export class ShareResourceWizard extends HTMLElement {
             console.log("save permissions: ", permissions)
             let rqst = new SetResourcePermissionsRqst
             let globule = f.globule
-            rqst.setPath(f.path)
+            rqst.setPath(f.getPath())
            
             rqst.setResourcetype("file")
             rqst.setPermissions(permissions)
@@ -519,18 +528,18 @@ export class ShareResourceWizard extends HTMLElement {
 
             let f = files[index]
             let permissions = new Permissions
-            permissions.setPath(f.path)
+            permissions.setPath(f.getPath())
             permissions.setResourceType("file")
 
             let rqst = new GetResourcePermissionsRqst
-            rqst.setPath(f.path)
+            rqst.setPath(f.getPath())
             let globule = f.globule
 
             generatePeerToken(f.globule, token => {
                 f.globule.rbacService.getResourcePermissions(rqst, { domain: globule.domain, token: token }).then(
                     rsp => {
                         permissions = rsp.getPermissions()
-                        console.log("permission find for file ", f.path, permissions)
+                        console.log("permission find for file ", f.getPath(), permissions)
                         // so here I will merge the value for permission_ (taken from the interface)
                         // and the existing permissions from the backend.
                         permissions_.allowed.forEach(p => {
@@ -599,7 +608,7 @@ export class ShareResourceWizard extends HTMLElement {
                         // next file...
                         saveFilePermissions(f, permissions, () => {
                             setPermissions(++index)
-                        }, err => { console.log("---------->", err); errors[f.path] = err; setPermissions(++index) })
+                        }, err => { console.log("---------->", err); errors[f.getPath()] = err; setPermissions(++index) })
 
                     }).catch(err => {
 
@@ -609,7 +618,7 @@ export class ShareResourceWizard extends HTMLElement {
                             permissions.setDeniedList(permissions_.denied)
                             saveFilePermissions(f, permissions, () => {
                                 setPermissions(++index)
-                            }, err => { console.log("---------------> ", err); errors[f.path] = err; setPermissions(++index) })
+                            }, err => { console.log("---------------> ", err); errors[f.getPath()] = err; setPermissions(++index) })
 
                         }
                     })

@@ -1,5 +1,10 @@
 body {
-    overflow: hidden;
+    font-family: 'Roboto', sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    word-wrap: break-word;
+    padding: 0px;
+    margin: 0px;
 }
 
 code.hljs {

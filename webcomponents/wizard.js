@@ -248,6 +248,9 @@ export class Wizard extends HTMLElement {
 
         window.addEventListener("resize",
             (evt) => {
+                if(this.parentNode == null){
+                    return
+                }
 
                 let w = document.offsetWidth
                 

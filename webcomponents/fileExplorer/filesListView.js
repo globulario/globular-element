@@ -281,11 +281,6 @@ export class FilesListView extends FilesView {
 
                     if (!this.menu.isOpen()) {
 
-                        // Set the share menu
-                        span.appendChild(this.shareResource)
-                        this.shareResource.style.position = "absolute"
-                        this.shareResource.style.top = "7px";
-                        this.shareResource.style.right = "25px";
 
                         let files = [];
                         for (var key in this.selected) {
@@ -296,13 +291,11 @@ export class FilesListView extends FilesView {
                             files.push(f)
                         }
 
-                        this.shareResource.setFiles(files)
 
                         this.menu.showBtn()
 
                         document.body.appendChild(this.menu)
 
-                        let coords = getCoords(this.shareResource)
                         this.menu.style.position = "absolute"
                         this.menu.__top__ = coords.top
                         this.menu.style.top = coords.top + "px"
@@ -346,10 +339,6 @@ export class FilesListView extends FilesView {
                         checkbox.style.visibility = "hidden"
                     }
                     row.classList.remove("active")
-
-                    if (this.shareResource.parentNode) {
-                        this.shareResource.parentNode.removeChild(this.shareResource)
-                    }
 
                 }
 

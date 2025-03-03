@@ -55,29 +55,36 @@ export class FilesView extends HTMLElement {
         this.shareResource = new ShareResourceMenu(this)
 
 
-        let menuItemsHTML = `
-        <globular-dropdown-menu-item  id="file-infos-menu-item" icon="icons:info" text="File Infos" action=""> </globular-dropdown-menu-item>
-        <globular-dropdown-menu-item  id="title-infos-menu-item" icon="icons:info" text="Title Infos" action="" style="display: none;"> </globular-dropdown-menu-item>
-        <globular-dropdown-menu-item  id="manage-acess-menu-item" icon="folder-shared" text="Manage access" action=""></globular-dropdown-menu-item>
-        <globular-dropdown-menu-item  id="refresh-infos-menu-item" icon="icons:refresh" text="Refresh infos" title="convert media format to mp4 and fix audio to correct codec. Generate timeline and preview." action="" style="display: none;"></globular-dropdown-menu-item>
-        <globular-dropdown-menu-item separator="true" id="video-menu-item" icon="maps:local-movies" text="Movies" action="" style="display: none;"> 
-            <globular-dropdown-menu>
-                <globular-dropdown-menu-item id="generate-timeline-menu-item" icon="maps:local-movies" text="generate timeline" action=""> </globular-dropdown-menu-item>
-                <globular-dropdown-menu-item id="generate-preview-menu-item" icon="maps:local-movies" text="generate preview" action=""> </globular-dropdown-menu-item>
-                <globular-dropdown-menu-item separator="true" id="to-mp4-menu-item" icon="maps:local-movies" text="convert to mp4" action="" style="display: none;"> </globular-dropdown-menu-item>
-                <globular-dropdown-menu-item separator="true" id="to-hls-menu-item" icon="maps:local-movies" text="convert to hls" action="" style="display: none;"> </globular-dropdown-menu-item>
-            </globular-dropdown-menu>
-        </globular-dropdown-menu-item>
-        <globular-dropdown-menu-item separator="true"  id="cut-menu-item"  icon="icons:content-cut" text="Cut" action=""></globular-dropdown-menu-item>
-        <globular-dropdown-menu-item id="copy-menu-item" icon="content-copy" text="Copy" action=""></globular-dropdown-menu-item>
-        <globular-dropdown-menu-item id="paste-menu-item" icon="icons:content-paste" action="" text="Paste"></globular-dropdown-menu-item>
-        <globular-dropdown-menu-item separator="true"  id="rename-menu-item" text="Rename" icon="icons:create" action=""> </globular-dropdown-menu-item>
-        <globular-dropdown-menu-item id="delete-menu-item" icon="icons:delete" action="" text="Delete"> </globular-dropdown-menu-item>
-        <globular-dropdown-menu-item separator="true"  id="download-menu-item" icon="icons:cloud-download" text="Download" action=""> </globular-dropdown-menu-item>
-        <globular-dropdown-menu-item id="open-in-new-tab-menu-item" icon="icons:open-in-new" text="Open in new tab" action="" style="display: none;"> </globular-dropdown-menu-item>
-        <globular-dropdown-menu-item id="copy-url-menu-item" icon="icons:link" text="Copy url" action=""> </globular-dropdown-menu-item>
+        let menuItemsHTML = `<globular-dropdown-menu-item id="cut-menu-item" icon="icons:content-cut" text="Cut" title="Cut the selected item" action=""></globular-dropdown-menu-item>
+<globular-dropdown-menu-item id="copy-menu-item" icon="content-copy" text="Copy" title="Copy the selected item" action=""></globular-dropdown-menu-item>
+<globular-dropdown-menu-item id="paste-menu-item" icon="icons:content-paste" text="Paste" title="Paste the copied item" action=""></globular-dropdown-menu-item>
+<globular-dropdown-menu-item id="rename-menu-item" icon="icons:create" text="Rename" title="Rename the selected item" action=""></globular-dropdown-menu-item>
+<globular-dropdown-menu-item id="delete-menu-item" icon="icons:delete" text="Delete" title="Delete the selected item" action=""></globular-dropdown-menu-item>
+
+<globular-dropdown-menu-item separator="true" id="file-infos-menu-item" icon="icons:info" text="File Infos" title="View file information" action=""></globular-dropdown-menu-item>
+<globular-dropdown-menu-item id="title-infos-menu-item" icon="icons:info" text="Title Infos" title="View title information" action="" style="display: none;"></globular-dropdown-menu-item>
+<globular-dropdown-menu-item id="refresh-infos-menu-item" icon="icons:refresh" text="Refresh Infos" title="Convert media format to MP4 and fix audio codec. Generate timeline and preview." action="" style="display: none;"></globular-dropdown-menu-item>
+
+<globular-dropdown-menu-item separator="true" id="shared-menu-item" icon="social:share" text="Share" title="Share this item" action=""></globular-dropdown-menu-item>
+<globular-dropdown-menu-item id="manage-acess-menu-item" icon="folder-shared" text="Manage Access" title="Manage access permissions" action=""></globular-dropdown-menu-item>
+
+<globular-dropdown-menu-item separator="true" id="video-menu-item" icon="maps:local-movies" text="Movies" title="Movie-related actions" action="" style="display: none;">
+    <globular-dropdown-menu>
+        <globular-dropdown-menu-item id="generate-timeline-menu-item" icon="maps:local-movies" text="Generate Timeline" title="Generate a timeline for the movie" action=""></globular-dropdown-menu-item>
+        <globular-dropdown-menu-item id="generate-preview-menu-item" icon="maps:local-movies" text="Generate Preview" title="Generate a preview for the movie" action=""></globular-dropdown-menu-item>
+        <globular-dropdown-menu-item id="to-mp4-menu-item" icon="maps:local-movies" text="Convert to MP4" title="Convert the movie to MP4 format" action="" style="display: none;"></globular-dropdown-menu-item>
+        <globular-dropdown-menu-item id="to-hls-menu-item" icon="maps:local-movies" text="Convert to HLS" title="Convert the movie to HLS format" action="" style="display: none;"></globular-dropdown-menu-item>
+    </globular-dropdown-menu>
+</globular-dropdown-menu-item>
+
+<globular-dropdown-menu-item separator="true" id="download-menu-item" icon="icons:cloud-download" text="Download" title="Download the selected item" action=""></globular-dropdown-menu-item>
+<globular-dropdown-menu-item id="open-in-new-tab-menu-item" icon="icons:open-in-new" text="Open in New Tab" title="Open the selected item in a new tab" action="" style="display: none;"></globular-dropdown-menu-item>
+<globular-dropdown-menu-item id="copy-url-menu-item" icon="icons:link" text="Copy URL" title="Copy the URL of the selected item" action=""></globular-dropdown-menu-item>
+
+
         `
 
+        
         this.menu = new DropdownMenu("icons:more-vert")
         this.menu.style.zIndex = 1000
         this.menu.className = "file-dropdown-menu"
@@ -88,6 +95,9 @@ export class FilesView extends HTMLElement {
         this.titleInfosMenuItem = this.menu.querySelector("#title-infos-menu-item")
         this.refreshInfoMenuItem = this.menu.querySelector("#refresh-infos-menu-item")
         this.mananageAccessMenuItem = this.menu.querySelector("#manage-acess-menu-item")
+        this.sharedMenuItem = this.menu.querySelector("#shared-menu-item")
+
+        
         this.renameMenuItem = this.menu.querySelector("#rename-menu-item")
         this.deleteMenuItem = this.menu.querySelector("#delete-menu-item")
         this.downloadMenuItem = this.menu.querySelector("#download-menu-item")
@@ -145,6 +155,17 @@ export class FilesView extends HTMLElement {
             }
         };
 
+        this.sharedMenuItem.action = () => {
+            let files = [this.menu.file]
+            if(Object.keys(this.selected).length > 0){
+                files = []
+                for (var key in this.selected) {
+                    files.push(this.selected[key])
+                }
+            }
+            this.shareResource.setFiles(files)
+            this.shareResource.share()
+        }
 
         this.refreshInfoMenuItem.action = () => {
             let rqst = new StartProcessVideoRequest

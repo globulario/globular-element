@@ -365,7 +365,7 @@ export class SessionMenu extends HTMLElement {
                 this.accountUpdateListener = uuid;
             },
             (data) => {
-                this.setProfilePicture(data.profile_picture)
+                this.setProfilePicture(data.getProfilepicture())
             },
             true, this)
 
@@ -591,8 +591,8 @@ export class SessionMenu extends HTMLElement {
         this.imgBig = this.shadowRoot.getElementById("profile-picture-big");
         this.icoBig = this.shadowRoot.getElementById("profile-icon-big");
 
-        if (account.profile_picture != undefined) {
-            this.setProfilePicture(account.profile_picture);
+        if (account.getProfilepicture() != undefined) {
+            this.setProfilePicture(account.getProfilepicture());
         }
 
     }
