@@ -1,5 +1,8 @@
+import { Session, SessionState } from "globular-web-client/resource/resource_pb.js";
 import { AccountController } from "../../backend/account";
-import { displayMessage } from "../../backend/backend";
+import { Backend, displayMessage } from "../../backend/backend";
+import { SessionStatePanel } from "../session/session.js"
+import { Ringtone } from "../videoCall/ringtone.js"
 import "./acceptDeclineContactBtns.js"
 
 /**
@@ -45,11 +48,28 @@ export class ContactCard extends HTMLElement {
         if (name == undefined) {
             name = this.contact.getId()
         }
+
         if (this.contact.getFirstname().length > 0 && this.contact.getLastname().length > 0) {
-
             name = this.contact.getFirstname() + " " + this.contact.getLastname()
-
         }
+
+        // Here I will ask the user for confirmation before actually delete the contact informations.
+        let getSessionStateColor = (state) => {
+            switch (state) {
+                case SessionState.ONLINE:
+                    return "green";
+                case SessionState.OFFLINE:
+                    return "red";
+                case SessionState.AWAY:
+                    return "orange";
+                default:
+                    return "gray";
+            }
+        }
+
+        let state = this.contact.session.getState();
+        const color = getSessionStateColor(state);
+
 
         // Innitialisation of the layout.
         this.shadowRoot.innerHTML = `
@@ -108,6 +128,18 @@ export class ContactCard extends HTMLElement {
                 --iron-icon-fill-color: var(--palette-action-disabled);
                 display: none;
             }
+
+            .status-indicator {
+                width: 12px;
+                height: 12px;
+                border-radius: 50%;
+                background-color: ${color};
+                margin-right: 10px;
+                position: absolute;
+                top: 3px;
+                left: 1px;
+            }
+
         </style>
         <div class="contact-invitation-div">
             <div class="contact-header"> 
@@ -117,6 +149,7 @@ export class ContactCard extends HTMLElement {
                     <span>${name}</span>
                     <span>${this.contact.getEmail()}</span>
                 </div>
+                 <span class="status-indicator"></span>
             </div>
             <globular-session-state account="${this.contact.getId() + "@" + this.contact.getDomain()}"></globular-session-state>
             <globular-ringtones dir="assets/audio/ringtone" id="${this.contact.getId() + "_" + this.contact.getDomain() + "_ringtone"}" account="${this.contact.getId() + "@" + this.contact.getDomain()}"></globular-ringtones>
@@ -145,6 +178,21 @@ export class ContactCard extends HTMLElement {
         } else {
             this.shadowRoot.querySelector("globular-ringtones").style.display = "none"
         }
+
+
+        Backend.eventHub.subscribe(`session_state_${this.contact.getId() + "@" + this.contact.getDomain()}_change_event`,
+            (uuid) => {
+                /** nothing special here... */
+            },
+            (evt) => {
+                // Get the session state and update the color of the status indicator.
+                let session = Session.deserializeBinary(Uint8Array.from(evt.split(",")))
+                let state = session.getState()
+                const color = getSessionStateColor(state);
+                this.shadowRoot.querySelector(".status-indicator").style.backgroundColor = color
+            })
+
+
 
     }
 

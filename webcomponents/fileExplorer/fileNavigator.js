@@ -601,8 +601,6 @@ export class FileNavigator extends HTMLElement {
                             let s = rsp.getSharedresourceList().pop()
                             console.log(s)
 
-                            /*
-                            let s = rsp.getSharedresourceList().pop()
                             if (s != undefined) {
                                 initShared(s, callback)
                             } else {
@@ -617,7 +615,7 @@ export class FileNavigator extends HTMLElement {
                                 if (initCallback)
                                     initCallback(this.shared, this.public_)
 
-                            }*/
+                            }
                         }
 
                         callback(); // call once
@@ -625,10 +623,7 @@ export class FileNavigator extends HTMLElement {
                     .catch(e => displayError(e, 3000))
             })
         }
-
     }
-
-
 }
 
 customElements.define('globular-file-navigator', FileNavigator)

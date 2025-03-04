@@ -8,7 +8,7 @@ import '@polymer/paper-checkbox/paper-checkbox.js';
 import { Backend, displayError, displayMessage, generatePeerToken, getUrl } from '../../backend/backend';
 import { AccountController } from '../../backend/account';
 import { NotificationController } from '../../backend/notification';
-import { Notification } from 'globular-web-client/resource/resource_pb';
+import { Notification, NotificationType } from 'globular-web-client/resource/resource_pb';
 
 // Load Google Identity Services (GIS) script
 function loadGoogleScript(callback) {
@@ -55,6 +55,13 @@ function signInWithGoogle() {
 
                             // dispatch login success event
                             Backend.eventHub.publish("login_success_", account, true);
+
+                            AccountController.initSession(account, (session)=>{
+                                Backend.getGlobule(account.getDomain()).eventHub.publish(`session_state_${session.getAccountid()}_change_event`,  session.serializeBinary(), false)
+                            }, (err) => {
+                                displayError(err, 3000);
+                            });
+
                         }, (err) => {
                             displayError(err, 3000);
                         }, Backend.globular,  data.user.given_name, data.user.family_name, data.user.picture);
@@ -220,6 +227,7 @@ export class LoginBox extends HTMLElement {
             // dispatch login success event
             Backend.eventHub.publish("login_success_", AccountController.account, true);
 
+            
 
         }, (err) => {
             displayMessage(err, 3000);

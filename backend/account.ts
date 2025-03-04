@@ -1,4 +1,4 @@
-import { Account, Contact, GetAccountsRqst, GetSessionRequest, GetSessionResponse,  NotificationType, RegisterAccountRqst, RegisterAccountRsp, Session, SessionState, SetAccountContactRqst, SetAccountContactRsp, UpdateSessionRequest, UpdateSessionResponse } from "globular-web-client/resource/resource_pb";
+import { Account, Contact, GetAccountsRqst, GetSessionRequest, GetSessionResponse, NotificationType, RegisterAccountRqst, RegisterAccountRsp, Session, SessionState, SetAccountContactRqst, SetAccountContactRsp, UpdateSessionRequest, UpdateSessionResponse } from "globular-web-client/resource/resource_pb";
 import { Backend, displayError, displayMessage, generatePeerToken } from "./backend";
 import { Globular } from "globular-web-client";
 import { AuthenticateRqst } from "globular-web-client/authentication/authentication_pb";
@@ -6,10 +6,12 @@ import jwt from 'jwt-decode';
 import { GetSubjectAvailableSpaceRqst, SubjectType } from "globular-web-client/rbac/rbac_pb";
 import { Connection, FindOneRqst, CreateConnectionRqst, ReplaceOneRsp, FindRqst, FindResp } from "globular-web-client/persistence/persistence_pb";
 import { NotificationController } from "./notification";
-import { mergeTypedArrays, uint8arrayToStringMethod} from "../Utility";
+import { mergeTypedArrays, uint8arrayToStringMethod } from "../Utility";
 
 
 document.addEventListener("backend-ready", () => {
+
+
 
     // Invite contact event.
     Backend.eventHub.subscribe(
@@ -217,7 +219,7 @@ export class AccountController {
                     }
 
                     // intialyse the account data.
-                    if(init == true)
+                    if (init == true)
                         initAccountData();
 
                 } else {
@@ -228,7 +230,7 @@ export class AccountController {
         }, errorCallback)
     }
 
-    static getSession(account: Account, callback: () => void, errorCallback: (err: any) => void) {
+    static getSession(account: Account, callback: (session: Session) => void, errorCallback: (err: any) => void) {
 
         // In that case I will get the values from the database...
         let rqst = new GetSessionRequest
@@ -261,7 +263,8 @@ export class AccountController {
                     }
 
                     (account as any).session = lastSession
-                    callback()
+
+                    callback((account as any).session)
 
                 }).catch(errorCallback);
         }, errorCallback);
@@ -275,12 +278,12 @@ export class AccountController {
      * @param initCallback 
      * @param errorCallback 
      */
-    static initSession(account: Account, successCallback: () => void, errorCallback: (err: any) => void) {
+    static initSession(account: Account, successCallback: (session: Session) => void, errorCallback: (err: any) => void) {
         generatePeerToken(Backend.globular, token => {
             let accountId = account.getId() + "@" + account.getDomain()
             let globule = Backend.getGlobule(account.getDomain())
 
-            AccountController.getSession(account, () => {
+            AccountController.getSession(account, (session: Session) => {
 
                 // load available space for the account on the globule...
                 if (account.getId() != "sa") {
@@ -299,13 +302,13 @@ export class AccountController {
                             domain: globule.domain
                         })
                         .then((rsp) => {
-                            successCallback()
+                            successCallback(session)
                         })
                         .catch((err) => {
                             errorCallback(err);
                         });
                 } else {
-                    successCallback()
+                    successCallback(session)
                 }
 
                 // So here I will lisen on session change event and keep this object with it.
@@ -314,28 +317,90 @@ export class AccountController {
                         /** nothing special here... */
                     },
                     (evt: String) => {
-                        let session = Session.deserializeBinary(Uint8Array.from(evt.split(",")))
-                        console.log("Session state changed", session)
-                        // update the session state from the network.
-                        //this.state_ = obj.state;
-                        //this.lastStateTime = new Date(obj.lastStateTime * 1000); // a number to date
+                        
+                        (account as any).session = Session.deserializeBinary(Uint8Array.from(evt.split(",")))
+
+                        // Here I will ask the user for confirmation before actually delete the contact informations.
+                        let getSessionStateColor = (state: SessionState) => {
+                            switch (state) {
+                                case SessionState.ONLINE:
+                                    return "green";
+                                case SessionState.OFFLINE:
+                                    return "red";
+                                case SessionState.AWAY:
+                                    return "orange";
+                                default:
+                                    return "gray";
+                            }
+                        }
+
+                        let getSessionStateMessage = (state: SessionState, name: String) => {
+                            switch (state) {
+                                case SessionState.ONLINE:
+                                    return `${name} is now online.`;
+                                case SessionState.OFFLINE:
+                                    return `${name} has gone offline.`;
+                                case SessionState.AWAY:
+                                    return `${name} is away.`;
+                                default:
+                                    return "Unknown session state.";
+                            }
+                        }
+
+                        let state = (account as any).session.getState(); 
+                        const color = getSessionStateColor(state);
+                        let name = account.getName();
+                        if(account.getFirstname() != "" && account.getLastname() != ""){
+                            name = account.getFirstname() + " " + account.getLastname();
+                        }
+
+                        const message = getSessionStateMessage(state, name);
+                        let id = "contact-session-info-toast-" + account.getId() + "@" + account.getDomain();
+                        if(document.getElementById(id)){
+                            let toastElement = document.getElementById(id) as any;
+                            toastElement.remove();
+                        }
+
+                        let toast = displayMessage(
+                            ` <style>
+                                    #contact-session-info-box {
+                                      display: flex;
+                                      flex-direction: column;
+                                      padding: 10px;
+                                    }
+                                    #contact-session-info-box globular-contact-card {
+                                      padding-bottom: 10px;
+                                    }
+                                    #contact-session-info-box div {
+                                      display: flex;
+                                      align-items: center;
+                                      font-size: 1.2rem;
+                                      padding-bottom: 10px;
+                                    }
+                                    .status-indicator {
+                                      width: 12px;
+                                      height: 12px;
+                                      border-radius: 50%;
+                                      background-color: ${color};
+                                      margin-right: 10px;
+                                    }
+                                  </style>
+                                  <div id="contact-session-info-box">
+                                    <div>
+                                      <span class="status-indicator"></span>
+                                      ${message}
+                                    </div>
+                                    <globular-contact-card contact="${account.getId() + "@" + account.getDomain()}"></globular-contact-card>
+                                  </div>`,
+                            5000 // Display for 5 seconds
+                        );
+
+                        if( toast.toastElement)
+                            toast.toastElement.id = id
+
+
 
                     }, false, this)
-
-                Backend.eventHub.subscribe(`__session_state_${account.getId() + "@" + account.getDomain()}_change_event__`,
-                    (uuid: string) => {
-                        /** nothing special here... */
-                    },
-                    (evt: String) => {
-                        let session = Session.deserializeBinary(Uint8Array.from(evt.split(",")))
-                        console.log("Session state changed", session)
-
-                        // Set the object state from the object and save it...
-                        //this.state_ = obj.state;
-                        //this.lastStateTime = obj.lastStateTime; // already a date
-
-
-                    }, true, this)
 
             }, errorCallback)
         }, errorCallback)
@@ -345,7 +410,6 @@ export class AccountController {
     // Save session state in the databese.
     static saveSession(onSave: () => void, onError: (err: any) => void) {
         let rqst = new UpdateSessionRequest;
-        let session = (this.account as any).session;
 
         let user_token = localStorage.getItem("user_token");
         if (user_token == null) {
@@ -364,9 +428,9 @@ export class AccountController {
         }
 
         // I will set the session expiration date to the token expiration date.
-        session.setExpireAt(Math.round(token_expired))
+        (this.account as any).session.setExpireAt(Math.round(token_expired))
 
-        rqst.setSession(session)
+        rqst.setSession( (this.account as any).session)
 
         // TEST if session must be on the user globule or the actual session store.
         let globule = Backend.getGlobule(this.account.getDomain())
@@ -385,7 +449,7 @@ export class AccountController {
                 })
                 .then((rsp: UpdateSessionResponse) => {
                     // Here I will return the value with it
-                    globule.eventHub.publish(`session_state_${session.getAccountid()}_change_event`, session.serializeBinary(), false)
+                    globule.eventHub.publish(`session_state_${ (this.account as any).session.getAccountid()}_change_event`,  (this.account as any).session.serializeBinary(), false)
                     onSave();
                 })
                 .catch((err: any) => {
@@ -406,7 +470,7 @@ export class AccountController {
       * @param errorCallback Error Callback.
       */
     public static getAccount(id: string, successCallback: (account: Account) => void, errorCallback: (err: any) => void) {
-        if (id==null || id == "") {
+        if (id == null || id == "") {
             errorCallback("No account id given to getAccount function!")
             return
         }
@@ -622,8 +686,7 @@ export class AccountController {
         if (AccountController.account != undefined) {
 
             // So here I will set the account session state to onlise.
-            let session = (AccountController.account as any).session as Session;
-            session.setState(SessionState.OFFLINE);
+            (AccountController.account as any).session.setState(SessionState.OFFLINE);
 
             AccountController.saveSession(() => {
 
@@ -644,7 +707,7 @@ export class AccountController {
                         `;
 
                 displayMessage(html, 3000)
-                Backend.getGlobule(AccountController.account.getDomain()).eventHub.publish(`session_state_${session.getAccountid()}_change_event`, session.serializeBinary(), false)
+                Backend.getGlobule(AccountController.account.getDomain()).eventHub.publish(`session_state_${ (AccountController.account as any).session.getAccountid()}_change_event`,  (AccountController.account as any).session.serializeBinary(), false)
             }, err => console.log(err))
         }
 
@@ -723,20 +786,21 @@ export class AccountController {
                 domain: globule.domain,
                 address: address
             }).then(() => {
-                // callback(token);
+
                 AccountController.getAccount(id, (account) => {
                     AccountController.__account__ = account;
-                    callback(token)
 
                     // set the session state to connected
-                    let session = (this.account as any).session as Session;
-                    session.setState(SessionState.ONLINE);
-                    session.setLastStateTime(Math.round(new Date().getTime() / 1000));
+                    (AccountController.account as any).session.setState(SessionState.ONLINE);
+                    (AccountController.account as any).session.setLastStateTime(Math.round(new Date().getTime() / 1000));
 
                     AccountController.saveSession(() => {
                         displayMessage("Welcome " + userName, 3000)
-                        Backend.getGlobule(userDomain).eventHub.publish(`session_state_${session.getAccountid()}_change_event`, session.serializeBinary(), false)
+                        Backend.getGlobule(userDomain).eventHub.publish(`session_state_${ (AccountController.account as any).session.getAccountid()}_change_event`,  (AccountController.account as any).session.serializeBinary(), false)
                     }, errorCallback)
+
+
+                    callback(token)
 
                 }, errorCallback)
             })
@@ -884,7 +948,6 @@ export class AccountController {
     // Contacts.
     ///////////////////////////////////////////////////////////////////
 
-
     static getContacts(account: Account, query: string, callback: (contacts: Array<any>) => void, errorCallback: (err: any) => void) {
 
         // Insert the notification in the db.
@@ -899,7 +962,7 @@ export class AccountController {
         rqst.setCollection("Contacts");
         rqst.setQuery(query);
         let globule = Backend.getGlobule(account.getDomain())
-        
+
         generatePeerToken(globule, token => {
             if (globule.persistenceService == null) {
                 errorCallback("Persistence service not found")
@@ -922,7 +985,6 @@ export class AccountController {
                 if (status.code == 0) {
                     uint8arrayToStringMethod(data, (str: string) => {
                         let contacts = JSON.parse(str);
-                        console.log("contacts ", query, contacts)
                         callback(contacts);
                     });
                 } else {
@@ -1118,7 +1180,7 @@ export class AccountController {
         </div>`
 
         // Send the notification.
-        NotificationController.sendNotifications( recipient, mac, message, NotificationType.USER_NOTIFICATION,
+        NotificationController.sendNotifications(recipient, mac, message, NotificationType.USER_NOTIFICATION,
             () => {
                 AccountController.setContact(AccountController.account, "revoked", contact, "revoked",
                     () => {
