@@ -1,3 +1,6 @@
+import { SharedResources } from './sharedResources.js'
+
+
 export class SharePanel extends HTMLElement {
     // attributes.
 
@@ -8,6 +11,9 @@ export class SharePanel extends HTMLElement {
         // keep local account in memory...
         this.account = account;
 
+        // the file explorer.
+        this._file_explorer_ = null;
+
         // Set the shadow dom.
         this.attachShadow({ mode: 'open' });
 
@@ -15,11 +21,12 @@ export class SharePanel extends HTMLElement {
         this.shadowRoot.innerHTML = `
         <style>
            
-            paper-card {
+            #container {
                 background-color: var(--surface-color);
-                margin-top: 10px;
-                height: calc(100vh - 85px);
                 font-size: 1.65rem;
+                display: flex;
+                height: 100%;
+                width: 100%;
             }
 
             #share_div{
@@ -41,16 +48,10 @@ export class SharePanel extends HTMLElement {
             }
 
             h1{
-
                 margin: 0px; 
                 margin-left: 10px;
-            }
-
-            h2{
-                margin-bottom: 4px; 
-                margin-left: 10px;
-                border-bottom: 1px solid var(--palette-divider);
-                width: 80%;
+                font-size: 1.25rem;
+                flex-grow: 1;
             }
 
             ::slotted(globular-shared-resources){
@@ -100,7 +101,7 @@ export class SharePanel extends HTMLElement {
               }
 
         </style>
-        <paper-card id="container">
+        <div id="container">
             <div class="card-content">
                 <div style="display: flex; justify-content: center;">
                     <h1 style="flex-grow: 1;">Shared Resources...</h1>
@@ -114,7 +115,7 @@ export class SharePanel extends HTMLElement {
                 </div>
 
             </div>
-        </paper-card>
+        </div>
         `
 
         this.onclose = null
@@ -126,6 +127,11 @@ export class SharePanel extends HTMLElement {
                 this.onclose()
             }
         }
+
+
+    }
+
+    connectedCallback() {
 
         let subjectsView = this.shadowRoot.querySelector("globular-subjects-view")
 
@@ -141,13 +147,14 @@ export class SharePanel extends HTMLElement {
             groupDiv.group = group;
             this.displaySharedResources(group)
         }
-
     }
 
     // Display resource shared with a given subject.
     displaySharedResources(subject) {
         this.innerHTML = "" // clear the slot...
-        this.appendChild(new SharedResources(subject))
+        let sharedResources = new SharedResources(subject)
+        sharedResources._file_explorer_ = this._file_explorer_
+        this.appendChild(sharedResources)
     }
 
 }

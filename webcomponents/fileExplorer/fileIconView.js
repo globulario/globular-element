@@ -249,7 +249,7 @@ export class FileIconView extends HTMLElement {
                     file.keepLocalyCopy(() => {
                         thumbtack.style.display = "block";
                         thumbtack.style.left = "8px"
-                        thumbtack.style.fill = "var(--palette-primary-main)"
+                        thumbtack.style.fill = "var(--primary-color)"
                     })
                 }
             })
@@ -265,7 +265,7 @@ export class FileIconView extends HTMLElement {
                     if (exist) {
                         thumbtack.style.display = "block";
                         thumbtack.style.left = ""
-                        thumbtack.style.fill = "var(--palette-primary-main)"
+                        thumbtack.style.fill = "var(--primary-color)"
                     }
                 })
 
@@ -295,7 +295,7 @@ export class FileIconView extends HTMLElement {
                     if (exist) {
                         thumbtack.style.display = "block";
                         thumbtack.style.left = "8px"
-                        thumbtack.style.fill = "var(--palette-primary-main)"
+                        thumbtack.style.fill = "var(--primary-color)"
                     }
                 })
         }
@@ -308,7 +308,7 @@ export class FileIconView extends HTMLElement {
                     if (exist) {
                         thumbtack.style.display = "block";
                         thumbtack.style.left = "8px"
-                        thumbtack.style.fill = "var(--palette-primary-main)"
+                        thumbtack.style.fill = "var(--primary-color)"
                     }
                 })
             }
@@ -544,7 +544,7 @@ export class FileIconView extends HTMLElement {
 
             let thumbtacks = this.div.querySelectorAll("svg")
             for (var i = 0; i < thumbtacks.length; i++) {
-                if (thumbtacks[i].style.fill == "var(--palette-primary-main)") {
+                if (thumbtacks[i].style.fill == "var(--primary-color)") {
                     thumbtacks[i].style.left = "8px"
                 } else {
                     thumbtacks[i].style.display = "none"
@@ -558,7 +558,7 @@ export class FileIconView extends HTMLElement {
                     if (exist) {
                         thumbtack.style.display = "block";
                         thumbtack.style.left = ""
-                        thumbtack.style.fill = "var(--palette-primary-main)"
+                        thumbtack.style.fill = "var(--primary-color)"
                     }
                 })
             }

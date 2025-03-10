@@ -256,7 +256,7 @@ class DocumentSearchResults extends HTMLElement {
                     cursor: pointer;
                 }
                 .result-link:hover {
-                    text-decoration-color: var(--palette-primary-main);
+                    text-decoration-color: var(--primary-color);
                 }
                 .snippet-container {
                     padding: 15px;

@@ -67,7 +67,10 @@ export class ContactCard extends HTMLElement {
             }
         }
 
-        let state = this.contact.session.getState();
+        let state = SessionState.OFFLINE
+        if(this.contact.session != undefined){
+             this.contact.session.getState();
+        }
         const color = getSessionStateColor(state);
 
 

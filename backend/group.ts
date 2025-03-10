@@ -1,5 +1,5 @@
 
-import { Account, Account, GetGroupsRqst, Group } from "globular-web-client/resource/resource_pb"
+import { Account, GetGroupsRqst, Group } from "globular-web-client/resource/resource_pb"
 import { Backend } from "./backend"
 import { Globular } from "globular-web-client";
 import { getAllGroups } from "globular-web-client/api";

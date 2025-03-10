@@ -424,7 +424,7 @@ export class GlobularSubjectsView extends HTMLElement {
                 let g = groups[index]
                 if (g) {
                     groupsSelector.style.display = ""
-                    let group_uuid = "_" + getUuidByString(g.id + "@" + g.domain)
+                    let group_uuid = "_" + getUuidByString(g.getId() + "@" + g.getDomain())
                     let html = `
                         <div id="${group_uuid}" class="infos" style="flex-direction: column;">
                             <div style="display: flex; align-self: flex-start; align-items: center;">
@@ -442,8 +442,8 @@ export class GlobularSubjectsView extends HTMLElement {
                         html += `<div class="group-members" style="display: flex;">`
                         members.forEach(a => {
                             let name = a.getName()
-                            if(a.getFistname().length > 0 && a.getLastname().length > 0){  
-                                name = a.getFistname() + " " + a.getLastname()
+                            if(a.getFirstname().length > 0 && a.getLastname().length > 0){  
+                                name = a.getFirstname() + " " + a.getLastname()
                             }
                             let uuid = "_" + getUuidByString(a.getId() + "@" + a.getDomain())
                             html += `

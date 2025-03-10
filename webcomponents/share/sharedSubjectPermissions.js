@@ -134,8 +134,10 @@ export class SharedSubjectsPermissions extends HTMLElement {
 
         let setSubjectRow = (s) => {
             let name = s.getName()
-            if(s.getFirstname().length > 0 && s.getLastname().length > 0){
-                name = s.getFirstname() + " " + s.getLastname()
+            if (s instanceof Account) {
+                if (s.getFirstname().length > 0 && s.getLastname().length > 0) {
+                    name = s.getFirstname() + " " + s.getLastname()
+                }
             }
             let uuid = "_" + getUuidByString(s.getId() + "@" + s.getDomain())
             let html = `
@@ -203,7 +205,7 @@ export class SharedSubjectsPermissions extends HTMLElement {
             let row = permissions.querySelector("#" + uuid + "_row")
             row.subject = s
             row.style.display = "table-row"
-            if (s.getProfilepicture()) {
+            if (s instanceof Account) {
                 row.querySelector("img").src = s.getProfilepicture()
                 row.querySelector("#group-icon").style.display = "none"
             } else {

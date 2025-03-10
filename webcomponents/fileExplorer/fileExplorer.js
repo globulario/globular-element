@@ -22,8 +22,7 @@ import { FilesUploader } from "./fileUploader.js";
 import { SearchBar } from "../search/searchBar.js";
 import { SearchResults } from "../search/searchResults.js";
 import { SearchDocumentBar } from "./searchDocument.js";
-import { set } from "lodash";
-import { search } from "jmespath";
+import { SharePanel } from "../share/sharePanel.js"
 
 function getElementIndex(element) {
     return Array.from(element.parentNode.children).indexOf(element);
@@ -60,6 +59,7 @@ export class FileExplorer extends HTMLElement {
         this.dialog = undefined; // Dialog element for the explorer
         this.onclose = undefined; // Close event handler
         this.onopen = undefined; // Open event handler
+        this.onloaded = undefined; // Loaded event handler
         this.listeners = {}; // Event listeners registry
 
         // Define interface elements
@@ -75,6 +75,7 @@ export class FileExplorer extends HTMLElement {
         this.refreshBtn = undefined; // Refresh button
         this.backNavigationBtn = undefined; // Back navigation button
         this.upwardNavigationBtn = undefined; // Upward navigation button
+        this.sharePanel = undefined; // Share panel instance
 
         // Initialize layout and styles
         this._initializeLayout();
@@ -195,6 +196,7 @@ export class FileExplorer extends HTMLElement {
         <span id="title-span" slot="title">File Explorer</span>
 
         <!-- Header action buttons -->
+        <paper-icon-button slot="header" id="show-share-panel-btn" icon="social:share"></paper-icon-button>
         <paper-icon-button slot="header" id="navigation-cloud-upload-btn" icon="icons:cloud-upload"></paper-icon-button>
         <paper-icon-button slot="header" id="navigation-create-dir-btn" icon="icons:create-new-folder"></paper-icon-button>
         <paper-icon-button slot="header" id="navigation-refresh-btn" icon="icons:refresh"></paper-icon-button>
@@ -278,6 +280,9 @@ export class FileExplorer extends HTMLElement {
         this.dialog.onclose = () => {
             this.filesIconView.hide()
             this.filesListView.hide()
+            if (this.onclose != undefined) {
+                this.onclose()
+            }
         }
 
         this.dialog.onmove = (left, top) => {
@@ -304,6 +309,33 @@ export class FileExplorer extends HTMLElement {
         this.fowardNavigationBtn = this.shadowRoot.querySelector("#navigation-forward-btn")
         this.upwardNavigationBtn = this.shadowRoot.querySelector("#navigation-upward-btn")
         this.lstNavigationBtn = this.shadowRoot.querySelector("#navigation-lst-btn")
+
+        // the share panel button.
+        this.sharePanelBtn = this.shadowRoot.querySelector("#show-share-panel-btn")
+
+        this.sharePanelBtn.onclick = (evt) => {
+            evt.stopPropagation();
+            this.permissionManager.style.display = "none"
+            this.informationManager.style.display = "none"
+
+            if (this.sharePanel == undefined) {
+                this.sharePanel = new SharePanel(AccountController.account)
+                this.sharePanel._file_explorer_ = this
+                this.sharePanel.id = "share-panel"
+                this.sharePanel.style.position = "absolute"
+                this.sharePanel.style.zIndex = 1000
+                this.sharePanel.style.top = "0px"
+                this.sharePanel.style.left = "0px"
+                this.sharePanel.style.right = "0px"
+                this.sharePanel.style.bottom = "0px"
+
+                this.sharePanel.onclose = () => {
+                    // remove the share panel.
+                }
+            }
+
+            this.appendChild(this.sharePanel)
+        }
 
 
         // Upload a file.
@@ -408,6 +440,37 @@ export class FileExplorer extends HTMLElement {
                 this.refreshBtn.click()
             }
         }, false)
+
+        // Link event 
+        Backend.eventHub.subscribe("follow_link_event_", (uuid) => { }, (evt) => {
+            if (evt._file_explorer_ == undefined) {
+                return
+            }
+
+            if (evt._file_explorer_.id == this.id) {
+                // this.publishSetDirEvent(evt.path)
+                FileController.getFile(this.globule, evt.path, 64, 64, (file) => {
+                    if (this.sharePanel) {
+                        if (this.sharePanel.parentElement) {
+                            this.sharePanel.parentElement.removeChild(this.sharePanel)
+                        }
+                    }
+
+                    if (file.getIsDir()) {
+                        this.publishSetDirEvent(evt.path)
+                    } else {
+                        let mime = file.getMime()
+                        if (mime.startsWith("video")) {
+                            playVideo(file.getPath(), this.globule)
+                        } else if (mime.startsWith("audio")) {
+                            playAudio(file.getPath(), this.globule)
+                        } else {
+                            this.readFile(file)
+                        }
+                    }
+                }, err => displayError(err, 3000), this.globule)
+            }
+        }, true)
 
         this.fileIconBtn.onclick = (evt) => {
             evt.stopPropagation();
@@ -933,7 +996,7 @@ export class FileExplorer extends HTMLElement {
         }
 
 
-        let readRootDir = (root) => {
+        let readRootDir = (root, callback) => {
 
             FileController.readDir(root, (dir) => {
 
@@ -967,10 +1030,15 @@ export class FileExplorer extends HTMLElement {
                 }
 
                 // set the user dir...
-                this.setDir(dir)
+                this.setDir(dir, () => {
 
-                // display the root dir...
-                Backend.eventHub.publish("__set_dir_event__", { dir: dir, file_explorer_id: this.id }, true)
+                    // display the root dir...
+                    Backend.eventHub.publish("__set_dir_event__", { dir: dir, file_explorer_id: this.id }, true)
+                    if (callback) {
+                        callback()
+                    }
+                })
+
 
 
             }, (err) => {
@@ -988,17 +1056,33 @@ export class FileExplorer extends HTMLElement {
             // display the authentication dialog.
             displayAuthentication("Authentication required to access the resource.", globule, () => {
                 let userDir = "/users/" + AccountController.account.getId() + "@" + AccountController.account.getDomain()
-                readRootDir(userDir)
+                readRootDir(userDir, () => {
+                    // read the application dir...
+                    let applicatonDir = "/applications/" + window.location.pathname.split('/')[1];
+                    readRootDir(applicatonDir, ()=>{
+                        this.resume()
+                        if(this.onloaded){
+                            this.onloaded()
+                        }
+                    })
+                })
             })
         } else {
             // read the root dir...
             let root = "/users/" + AccountController.account.getId() + "@" + AccountController.account.getDomain()
-            readRootDir(root)
+            readRootDir(root, () => {
+                // read the application dir...
+                let applicatonDir = "/applications/" + window.location.pathname.split('/')[1];
+                readRootDir(applicatonDir, ()=>{
+                    this.resume()
+                    if(this.onloaded){
+                        this.onloaded()
+                    }
+                })
+            })
         }
 
-        // read the application dir...
-        let applicatonDir = "/applications/" + window.location.pathname.split('/')[1];
-        readRootDir(applicatonDir)
+
 
     }
 
@@ -1095,7 +1179,7 @@ export class FileExplorer extends HTMLElement {
 
     }
 
-    readFile(file, page=1) {
+    readFile(file, page = 1) {
 
         // hide the content.
         this.filesListView.hide()

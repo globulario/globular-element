@@ -239,7 +239,7 @@ export class ShareResourceWizard extends HTMLElement {
                 // display the list of resource...
                 let getMembers = (index) => {
                     let group = groups[index]
-                    GroupController.getMembers.getMembers(group.getId(), members => {
+                    GroupController.getMembers(group.getId(), members => {
                         // append members...
                         members.forEach(member => {
                             if (participants.filter(p => p.getId() + "@" + p.getDomain() === member.getId() + "@" + member.getDomain()).length == 0) {

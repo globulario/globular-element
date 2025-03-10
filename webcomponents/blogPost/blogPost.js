@@ -285,8 +285,8 @@ export class BlogPostElement extends HTMLElement {
             }
 
             paper-radio-button {
-                --paper-radio-button-checked-color: var(--palette-primary-main);
-                --paper-radio-button-checked-ink-color: var(--palette-primary-main);
+                --paper-radio-button-checked-color: var(--primary-color);
+                --paper-radio-button-checked-ink-color: var(--primary-color);
                 --paper-radio-button-unchecked-color: var(--palette-action-disabled);
                 --paper-radio-button-unchecked-ink-color: var(--palette-action-disabled);
                 --paper-radio-button-label-color: var(--palette-action-disabled);

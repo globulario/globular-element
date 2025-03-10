@@ -21,6 +21,8 @@ export class SearchAudioCard extends HTMLElement {
                 position: relative;
                 background-color: var(--surface-color);
                 color: var(--palette-text-primary);
+                min-width: 250px;
+                max-width: 300px;
             }
 
             .audio-card{

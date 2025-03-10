@@ -2,6 +2,7 @@ import { Permission } from "globular-web-client/rbac/rbac_pb";
 import { AccountController } from "../../backend/account";
 import { displayError } from "../../backend/backend";
 import { v4 as uuidv4 } from "uuid";
+import { GroupController } from "../../backend/group";
 
 export class PermissionsViewer extends HTMLElement {
     // attributes.
@@ -267,7 +268,7 @@ export class PermissionsViewer extends HTMLElement {
             <div style="display: flex; align-items: center; padding: 5px; width: 100%;"> 
                 <iron-icon icon="social:people" style="width: 40px; height: 40px; border-radius: 50%; --iron-icon-fill-color:var(--palette-action-disabled); display:block"};"></iron-icon>
                 <div style="display: flex; flex-direction: column; width:250px; font-size: .85em; padding-left: 8px;">
-                    <span>${group.id + "@" + group.domain}</span>
+                    <span>${group.getId() + "@" + group.getDomain()}</span>
                 </div>
             </div>
             
@@ -677,7 +678,7 @@ export class PermissionsViewer extends HTMLElement {
                 subjectCell.innerHTML = ""
                 subjectCell.appendChild(applicationDiv)
             } else if (subject.type == "group") {
-                Group.getGroup(subject.id, g => {
+                GroupController.getGroup(subject.id, g => {
                     let groupDiv = this.createGroupDiv(g)
                     subjectCell.innerHTML = ""
                     subjectCell.appendChild(groupDiv)

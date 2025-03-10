@@ -41,7 +41,7 @@ export class SearchResults extends HTMLElement {
                 flex-grow: 1;
         
                 /* custom CSS property */
-                --paper-tabs-selection-bar-color: var(--palette-primary-main); 
+                --paper-tabs-selection-bar-color: var(--primary-color); 
                 color: var(--palette-text-primary);
                 --paper-tab-ink: var(--palette-action-disabled);
             }

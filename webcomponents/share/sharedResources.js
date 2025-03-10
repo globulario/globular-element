@@ -1,7 +1,10 @@
-import { GetSharedResourceRqst } from "globular-web-client/rbac/rbac_pb";
+import { GetSharedResourceRqst, RemoveSubjectFromShareRqst, SubjectType } from "globular-web-client/rbac/rbac_pb";
 import { AccountController } from "../../backend/account";
-import { Backend, displayError, displayMessage } from "../../backend/backend";
+import { Backend, displayError, displayMessage, generatePeerToken } from "../../backend/backend";
 import getUuidByString from "uuid-by-string"
+import { Account, Group } from "globular-web-client/resource/resource_pb";
+import { FileController } from "../../backend/file";
+import { Link } from "../link";
 
 /**
  * That panel display resource share with a given subject (account, group, organization etc.)
@@ -14,6 +17,12 @@ export class SharedResources extends HTMLElement {
         super()
         // Set the shadow dom.
         this.attachShadow({ mode: 'open' });
+
+        // the file explorer.
+        this._file_explorer_ = null;
+
+
+        this.subject = subject
 
         // Innitialisation of the layout.
         this.shadowRoot.innerHTML = `
@@ -69,7 +78,7 @@ export class SharedResources extends HTMLElement {
 
             paper-tabs{                  
                 /* custom CSS property */
-                --paper-tabs-selection-bar-color: var(--palette-primary-main); 
+                --paper-tabs-selection-bar-color: var(--primary-color); 
                 color: var(--primary-text-color);
                 --paper-tab-ink: var(--palette-action-disabled);
             }
@@ -128,9 +137,18 @@ export class SharedResources extends HTMLElement {
             }
         }
 
+
+
+    }
+
+    connectedCallback() {
+
         // get resources share with a given account...
         let youShareWithDiv = this.shadowRoot.querySelector("#you-share-with-div")
+        youShareWithDiv.innerHTML = ""
+
         let shareWithYouDiv = this.shadowRoot.querySelector("#share-with-you-div")
+        shareWithYouDiv.innerHTML = ""
 
         this.shadowRoot.querySelector("#share-with-you").onclick = () => {
             youShareWithDiv.style.display = "none"
@@ -143,15 +161,11 @@ export class SharedResources extends HTMLElement {
             shareWithYouDiv.style.display = "none"
         }
 
-
         // The logged user... ( 'you' in the context of a session)
-        //ApplicationView.wait(`<div style="display: flex; flex-direction: column; justify-content: center;"><span>Retreive</span><span>shared resources with</span><span>` + subject.id + `</span><span>...</span>` )
-
-        this.getSharedResources(AccountController.account, subject, resources => {
-            this.displaySharedResources(youShareWithDiv, resources, subject, true)
-            this.getSharedResources(subject, AccountController.account, resources => {
-                this.displaySharedResources(shareWithYouDiv, resources, subject, false)
-                //ApplicationView.resume()
+        this.getSharedResources(AccountController.account, this.subject, resources => {
+            this.displaySharedResources(youShareWithDiv, resources, this.subject, true)
+            this.getSharedResources(this.subject, AccountController.account, resources => {
+                this.displaySharedResources(shareWithYouDiv, resources, this.subject, false)
             })
         })
     }
@@ -162,69 +176,72 @@ export class SharedResources extends HTMLElement {
         let displayLink = () => {
             let r = resources.pop()
             let globule = Backend.getGlobule(r.getDomain())
-            File.getFile(globule, r.getPath(), 100, 64, file => {
-                let id = "_" + getUuidByString(file.path)
+            FileController.getFile(globule, r.getPath(), 100, 64, file => {
+                let id = "_" + getUuidByString(file.getPath())
 
                 // so here I will determine if I display the deleteable icon...
                 let deleteable_ = deleteable
-                if(deleteable){
+                if (deleteable) {
                     // Here I will make sure that the delete button has an effect on the share.
                     // for exemple is the permission is at group level i will not display delete
                     // button at accout level even if the resource appear in the list. To remove the
                     // resource the user must remove group permission on it.
-                    if (subject.constructor.name == "Account_Account") {
-                        deleteable_ = r.getAccountsList().indexOf(subject.id + "@" + subject.domain) != -1
-                    } else if (subject.constructor.name == "Group_Group") {
-                        deleteable_ = r.getGroupsList().indexOf(subject.id + "@" + subject.domain) != -1
-                    } else if (subject.constructor.name == "Application_Application") {
-                        deleteable_ = r.getApplicationList().indexOf(subject.id + "@" + subject.domain) != -1
-                    } else if (subject.constructor.name == "Organization_Organization") {
-                        deleteable_ = r.getOrganizationList().indexOf(subject.id + "@" + subject.domain) != -1
+                    if (subject instanceof Account) {
+                        deleteable_ = r.getAccountsList().indexOf(subject.getId() + "@" + subject.getDomain()) != -1
+                    } else if (subject instanceof Group) {
+                        deleteable_ = r.getGroupsList().indexOf(subject.getId() + "@" + subject.getDomain()) != -1
+                    } else if (subject instanceof Application) {
+                        deleteable_ = r.getApplicationList().indexOf(subject.getId() + "@" + subject.getDomain()) != -1
+                    } else if (subject instanceof Organization) {
+                        deleteable_ = r.getOrganizationList().indexOf(subject.getId() + "@" + subject.getDomain()) != -1
                     }
                 }
 
                 let alias = ""
-                if(file.videos){
+                if (file.videos) {
                     alias = file.videos[0].getDescription()
-                }else if (file.titles){
+                } else if (file.titles) {
                     alias = file.titles[0].getName()
-                }else if (file.audios){
+                } else if (file.audios) {
                     alias = file.audio[0].getTitle()
                 }
 
-                let html = `<globular-link alias="${alias}" mime="${file.mime}" id="${id}" ${deleteable_ ? "deleteable" : ""} path="${file.path}" thumbnail="${file.thumbnail}" domain="${file.domain}"></globular-link>`
+
+
+                let html = `<globular-link alias="${alias}" mime="${file.getMime()}" id="${id}" ${deleteable_ ? "deleteable" : ""} path="${file.getPath()}" thumbnail="${file.getThumbnail()}" domain="${globule.domain}"></globular-link>`
                 div.appendChild(range.createContextualFragment(html))
                 if (resources.length > 0) {
                     displayLink();
                 }
 
                 let lnk = div.querySelector(`#${id}`)
+                lnk._file_explorer_ = this._file_explorer_
+                
                 lnk.ondelete = () => {
 
                     // so now I will remove share resource.
                     let rqst = new RemoveSubjectFromShareRqst
 
-                    rqst.setDomain(file.domain)
-                    rqst.setPath(file.path)
-                    let globule = Backend.getGlobule(file.domain)
+                    rqst.setDomain(globule.domain)
+                    rqst.setPath(file.getPath())
 
-                    if (subject.constructor.name == "Account_Account") {
+                    if (subject instanceof Account) {
                         rqst.setType(SubjectType.ACCOUNT)
-                    } else if (subject.constructor.name == "Group_Group") {
+                    } else if (subject instanceof Group) {
                         rqst.setType(SubjectType.GROUP)
-                    } else if (subject.constructor.name == "Application_Application") {
+                    } else if (subject instanceof Application) {
                         rqst.setType(SubjectType.APPLICATION)
-                    } else if (subject.constructor.name == "Organization_Organization") {
+                    } else if (subject instanceof Organization) {
                         rqst.setType(SubjectType.ORGANIZATION)
                     }
 
                     // set the subject domain.
-                    rqst.setSubject(subject.id + "@" + subject.domain)
+                    rqst.setSubject(subject.getId() + "@" + subject.getDomain())
                     generatePeerToken(globule, token => {
                         globule.rbacService.removeSubjectFromShare(rqst, { domain: globule.domain, token: token })
                             .then(
                                 // Display message...
-                                displayMessage("Subject " + subject.id + " was removed from shared of " + file.path, 3000)
+                                displayMessage("Subject " + subject.getId() + " was removed from shared of " + file.getPath(), 3000)
 
                             ).catch(err => displayError(err))
                     })
@@ -246,46 +263,55 @@ export class SharedResources extends HTMLElement {
     }
 
     // Return the list of resource for a given subject.
+    // Return the list of resources for a given subject.
     getSharedResources(share_by, share_with, callback) {
+        if (share_by == null || share_with == null) {
+            return;
+        }
 
-        let globules = Backend.getGlobules()
+        let globules = Backend.getGlobules();
         let resources = [];
 
         let getSharedResource_ = () => {
-            let globule = globules.pop()
-            let rqst = new GetSharedResourceRqst
-            if (share_with.constructor.name == "Account_Account") {
-                rqst.setType(SubjectType.ACCOUNT)
-                rqst.setSubject(share_with.id + "@" + share_with.domain)
-                rqst.setOwner(share_by.id + "@" + share_by.domain)
-            } else if (share_with.constructor.name == "Group_Group") {
-                rqst.setType(SubjectType.GROUP)
-                rqst.setSubject(share_with.id + "@" + share_with.domain)
-                rqst.setOwner(share_by.id + "@" + share_by.domain)
+            let globule = globules.pop();
+            let rqst = new GetSharedResourceRqst();
+
+            // Determine if share_with is an account or a group.
+            let isAccount = share_with instanceof Account; // Assuming Account is a class
+
+            if (isAccount) {
+                rqst.setType(SubjectType.ACCOUNT);
+            } else {
+                rqst.setType(SubjectType.GROUP);
             }
+
+            rqst.setSubject(share_with.getId() + "@" + share_with.getDomain());
+            rqst.setOwner(share_by.getId() + "@" + share_by.getDomain());
 
             // Get file shared by account.
             globule.rbacService.getSharedResource(rqst, { domain: globule.domain, token: localStorage.getItem("user_token") })
                 .then(rsp => {
-                    resources = resources.concat(rsp.getSharedresourceList())
-                    if (globules.length == 0) {
-                        callback(resources)
+                    resources = resources.concat(rsp.getSharedresourceList());
+                    if (globules.length === 0) {
+                        callback(resources);
                     } else {
-                        getSharedResource_()
+                        getSharedResource_();
                     }
                 }).catch(err => {
-                    if (globules.length == 0) {
-                        callback(resources)
+                    console.error("Error fetching shared resources:", err);
+                    if (globules.length === 0) {
+                        callback(resources);
                     } else {
-                        getSharedResource_()
+                        getSharedResource_();
                     }
-                })
+                });
+        };
 
+        if (globules.length > 0) {
+            getSharedResource_();
         }
-
-        if (globules.length > 0)
-            getSharedResource_()
     }
+
 }
 
 customElements.define('globular-shared-resources', SharedResources)

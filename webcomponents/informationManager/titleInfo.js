@@ -824,7 +824,7 @@ export class TitleInfo extends HTMLElement {
 
             paper-tabs{
                 /* custom CSS property */
-                --paper-tabs-selection-bar-color: var(--palette-primary-main); 
+                --paper-tabs-selection-bar-color: var(--primary-color); 
                 color: var(--primary-text-color);
                 --paper-tab-ink: var(--palette-action-disabled);
             }

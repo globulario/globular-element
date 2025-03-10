@@ -586,7 +586,6 @@ export class FileNavigator extends HTMLElement {
         // The account...
         if (AccountController.account != undefined) {
 
-
             let rqst = new GetSharedResourceRqst
             rqst.setSubject(AccountController.account.getId() + "@" + AccountController.account.getDomain())
             rqst.setType(SubjectType.ACCOUNT)
@@ -599,7 +598,7 @@ export class FileNavigator extends HTMLElement {
                         // Here I need to sync the funtion and init the tree view once all is done...
                         let callback = () => {  
                             let s = rsp.getSharedresourceList().pop()
-                            console.log(s)
+                            //console.log(s)
 
                             if (s != undefined) {
                                 initShared(s, callback)

@@ -307,6 +307,7 @@ export class PermissionsManager extends HTMLElement {
         let rqst = new SetResourcePermissionsRqst
 
 
+        console.log("saving permissions", this.permissions)
         rqst.setPermissions(this.permissions)
         rqst.setPath(this.path)
 

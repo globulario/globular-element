@@ -677,7 +677,7 @@ export class SearchResultsPage extends HTMLElement {
 
                         lnk.onmouseover = () => {
                             lnk.style.cursor = "pointer";
-                            lnk.style.textDecorationColor = "var(--palette-primary-main)";
+                            lnk.style.textDecorationColor = "var(--primary-color)";
                         };
                     }
                 });

@@ -167,7 +167,9 @@ export class FileController {
             return
         }
 
-        globule.fileService.getFileInfo(rqst, { application: application, domain: globule.domain })
+        let token = localStorage.getItem("user_token") || ""
+
+        globule.fileService.getFileInfo(rqst, { application: application, token:token, domain: globule.domain })
             .then(rsp => {
                 let f = rsp.getInfo()
                 if (f == null) {
