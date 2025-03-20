@@ -248,7 +248,7 @@ export class SearchTitleCard extends HTMLElement {
                 rqst.setTitleid(title.getSerie())
                 let indexPath = globule.config.DataPath + "/search/titles"
                 rqst.setIndexpath(indexPath)
-                globule.titleService.getTitleById(rqst, {  domain: globule.domain, token: localStorage.getItem("user_token") })
+                globule.titleService.getTitleById(rqst, {  domain: globule.domain})
                     .then(rsp => {
                         let serie = rsp.getTitle()
                         let url = serie.getPoster().getContenturl()

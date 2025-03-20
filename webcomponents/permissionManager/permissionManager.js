@@ -392,8 +392,6 @@ export class PermissionsManager extends HTMLElement {
         rqst.setPath(path)
 
         this.globule.rbacService.getResourcePermissions(rqst, {
-            token: localStorage.getItem("user_token"),
-            domain: this.globule.domain
         }).then(rsp => {
             let permissions = rsp.getPermissions()
             this.setPermissions(permissions)

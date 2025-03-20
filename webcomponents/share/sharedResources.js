@@ -289,7 +289,7 @@ export class SharedResources extends HTMLElement {
             rqst.setOwner(share_by.getId() + "@" + share_by.getDomain());
 
             // Get file shared by account.
-            globule.rbacService.getSharedResource(rqst, { domain: globule.domain, token: localStorage.getItem("user_token") })
+            globule.rbacService.getSharedResource(rqst, { domain: globule.domain})
                 .then(rsp => {
                     resources = resources.concat(rsp.getSharedresourceList());
                     if (globules.length === 0) {

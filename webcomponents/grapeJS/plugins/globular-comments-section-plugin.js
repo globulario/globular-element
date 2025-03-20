@@ -1,9 +1,10 @@
 import grapesjs from 'grapesjs';
 
-export default grapesjs.plugins.add('gjs-plugin-globular-markdown', (editor, options = {}) => {
-  // Load required script and style
-  const scriptUrl = 'https://globular.io/globular-element/bundle.min.js';
-  const styleUrl = 'https://globular.io/globular-element/style.css';
+export default grapesjs.plugins.add('gjs-plugin-comment-section', (editor, options = {}) => {
+  // Load required script and style (if any)
+  
+  const scriptUrl = 'path/to/your/comment-component-script.js';
+  const styleUrl = 'path/to/your/comment-component-style.css';
 
   if (!document.querySelector(`script[src="${scriptUrl}"]`)) {
     const script = document.createElement('script');
@@ -18,20 +19,19 @@ export default grapesjs.plugins.add('gjs-plugin-globular-markdown', (editor, opt
     link.href = styleUrl;
     document.head.appendChild(link);
   }
+  
 
-  // Add custom markdown component
-  editor.Components.addType('globular-markdown', {
+  // Add custom comment component
+  editor.Components.addType('comment-section', {
     model: {
       defaults: {
-        tagName: 'globular-markdown',
+        tagName: 'globular-comment-list', // Use the custom element tag name
         attributes: {
-          'background-color': '#f5f2f0',
-          'code-background-color': '#f5f2f0',
+          'background-color': '#ffffff',
           'text-color': '#000000',
-          theme: '',
         },
-        components: 'Type your **Markdown** content here...',
-        stylable: ['background-color', 'text-color', 'code-background-color'],
+        components: '', // No initial components inside the comment section
+        stylable: ['background-color', 'text-color'],
         droppable: true,
       },
     },
@@ -48,9 +48,9 @@ export default grapesjs.plugins.add('gjs-plugin-globular-markdown', (editor, opt
   });
 
   // Add component to GrapesJS block manager
-  editor.BlockManager.add('globular-markdown', {
-    label: 'Markdown',
+  editor.BlockManager.add('comment-section', {
+    label: 'Comment Section',
     category: 'Basic',
-    content: { type: 'globular-markdown' },
+    content: { type: 'comment-section' },
   });
 });

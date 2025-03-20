@@ -265,8 +265,7 @@ export class ResourcesPermissionsType extends HTMLElement {
 
         let stream = Backend.globular.rbacService.getResourcePermissionsByResourceType(rqst,
             {
-                domain: Backend.globular.domain,
-                token: localStorage.getItem("user_token")
+                domain: Backend.globular.domain
             });
 
         // Get the stream and set event on it...

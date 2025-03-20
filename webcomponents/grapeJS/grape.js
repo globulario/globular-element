@@ -15,6 +15,7 @@ import "grapesjs/dist/css/grapes.min.css"
 
 // Globular plugin's
 import markdownPlugin from './plugins/globular-markdown-plugin';
+import commentsPlugin from './plugins/globular-comments-section-plugin';
 
 class ExternalResourceManager extends HTMLElement {
     constructor() {
@@ -471,7 +472,7 @@ export class GrapesEditor extends HTMLElement {
                         storageManager: false,
                         allowScripts: 1,
                         allowUnsafeAttr: true, // Allow the style tag to be added
-                        plugins: [componentCodeEditorPlugin, markdownPlugin, /*tailwindPlugin,*/bootstrap5Plugin, scripEditorPlugin, ckEditorPlugin, parserPostCSSPlugin, exportPlugin],
+                        plugins: [componentCodeEditorPlugin, markdownPlugin, commentsPlugin, /*tailwindPlugin,*/bootstrap5Plugin, scripEditorPlugin, ckEditorPlugin, parserPostCSSPlugin, exportPlugin],
                         pluginsOpts: {
                             [ckEditorPlugin]: {
                                 options: {

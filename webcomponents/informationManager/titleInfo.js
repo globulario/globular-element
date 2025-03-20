@@ -243,7 +243,7 @@ function _searchEpisodes_(globule, serie, indexPath, callback) {
     rqst.setOffset(0)
     rqst.setSize(1000)
     let episodes = []
-    let stream = globule.titleService.searchTitles(rqst, { domain: globule.domain, token: localStorage.getItem("user_token") })
+    let stream = globule.titleService.searchTitles(rqst, { domain: globule.domain })
     stream.on("data", (rsp) => {
         if (rsp.hasHit()) {
             let hit = rsp.getHit()
@@ -268,6 +268,9 @@ function _searchEpisodes_(globule, serie, indexPath, callback) {
                 }
                 return a.getSeason() - b.getSeason();
             }))
+        } else {
+            console.log(status.details);
+            errorCallback(status.details);
         }
     });
 }
@@ -905,7 +908,7 @@ export class TitleInfo extends HTMLElement {
                     let globule = e.globule
                     rqst.setTitleid(e.getId())
                     rqst.setIndexpath(indexPath)
-                    globule.titleService.getTitleFiles(rqst, { domain: globule.domain, token: localStorage.getItem("user_token") })
+                    globule.titleService.getTitleFiles(rqst, { domain: globule.domain })
                         .then(rsp => {
                             let path = rsp.getFilepathsList().pop()
                             let titleInfoBox = document.getElementById("title-info-box")

@@ -24,6 +24,7 @@ import './webcomponents/router';
 import './webcomponents/dynamicWebpage';
 import './webcomponents/contact/contacts';
 import './webcomponents/notification/notifications'
+import './webcomponents/comment/comments'
 
 // Import the styles
 import './styles.css';
