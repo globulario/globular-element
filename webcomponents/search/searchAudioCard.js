@@ -1,5 +1,7 @@
 import getUuidByString from "uuid-by-string";
 import { displayError, displayMessage } from "../../backend/backend";
+import { GetTitleFilesRequest } from "globular-web-client/title/title_pb";
+import { playAudio } from "../audio";
 
 export class SearchAudioCard extends HTMLElement {
     // attributes.

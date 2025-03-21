@@ -6,7 +6,7 @@ import { PlayList } from "./playlist";
 import { Dialog } from "./dialog"
 import { Audio, Poster } from "globular-web-client/title/title_pb";
 import { TitleController } from "../backend/title";
-import { Backend, generatePeerToken, getUrl} from "../backend/backend";
+import { Backend, getUrl} from "../backend/backend";
 
 /**
  * Play a list of audio files.
@@ -1126,61 +1126,63 @@ export class AudioPlayer extends HTMLElement {
         }
 
         if (globule) {
-            generatePeerToken(globule, token => {
-                let url = ""
-                if (path.startsWith("http")) {
-                    url = path;
-                } else {
+            
+            let url = ""
+            if (path.startsWith("http")) {
+                url = path;
+            } else {
 
-                    url = getUrl(globule)
+                url = getUrl(globule)
 
-                    //url += path
-                    path.split("/").forEach(item => {
-                        item = item.trim()
-                        if (item.length > 0) {
-                            url += "/" + encodeURIComponent(item)
-                        }
-                    })
+                //url += path
+                path.split("/").forEach(item => {
+                    item = item.trim()
+                    if (item.length > 0) {
+                        url += "/" + encodeURIComponent(item)
+                    }
+                })
 
 
-                }
+            }
 
-                if (local) {
-                    url = "local-media://" + path
-                }
+            if (local) {
+                url = "local-media://" + path
+            }
 
+            let token = localStorage.getItem("token")
+            if (token) {
                 url += "?token=" + token
-                url += "&application=" + globule.application
+            }
+     
+            this.path = path;
+            if (audio) {
+                this._audio_ = audio
+                this._audio_.globule = globule
+                this.audio.src = url
+            }
 
-                this.path = path;
-                if (audio) {
-                    this._audio_ = audio
-                    this._audio_.globule = globule
-                    this.audio.src = url
+            var xhr = new XMLHttpRequest();
+            xhr.open('get', url, true);
+
+            // Load the data directly as a Blob.
+            xhr.responseType = 'blob';
+
+            xhr.onload = (evt) => {
+                if (evt.target.status == 401) {
+                    displayError({message:`unable to read the file ${path} Check your access privilege`})
+                    this.close()
+                    return
+                }
+                if (evt.target.response.size < 48000000) {
+                    this.wavesurfer.loadBlob(evt.target.response);
+                } else {
+                    displayError("this file is to large to be play by the audio player. The maximum size is 24MB for audio file")
                 }
 
-                var xhr = new XMLHttpRequest();
-                xhr.open('get', url, true);
+            };
 
-                // Load the data directly as a Blob.
-                xhr.responseType = 'blob';
-
-                xhr.onload = (evt) => {
-                    if (evt.target.status == 401) {
-                        displayError({message:`unable to read the file ${path} Check your access privilege`})
-                        this.close()
-                        return
-                    }
-                    if (evt.target.response.size < 48000000) {
-                        this.wavesurfer.loadBlob(evt.target.response);
-                    } else {
-                        displayError("this file is to large to be play by the audio player. The maximum size is 24MB for audio file")
-                    }
-
-                };
-
-                xhr.send();
-            })
+            xhr.send();
+        
         } else {
 
             let url = audio.getUrl()
